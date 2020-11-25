@@ -14,12 +14,6 @@ function dyno(t, x, u)
     p_prime = SVector(x[5],x[6],x[7],x[8])
     h = x[9]
 
-    # scale u
-    # u /= model.uscale
-    # r = x_from_u(p)*dscale                       # ECI, m
-    # mu = μ
-
-
 
     P_j2 = SVector(u[1],u[2],u[3])
     # Levi-Civita transformation matrix
