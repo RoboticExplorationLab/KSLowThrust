@@ -21,7 +21,6 @@ struct KSopt <: TO.AbstractModel
     dscale::Float64
     uscale::Float64
 end
-
 function RobotDynamics.dynamics(model::KSopt, x, u)
 
     # unpack state
@@ -29,12 +28,15 @@ function RobotDynamics.dynamics(model::KSopt, x, u)
     p_prime = SVector(x[5],x[6],x[7],x[8])
     h = x[9]
 
-    # scale u
-    # u /= model.uscale
 
+    P_j2 = SVector(u[1],u[2],u[3])
+    # Levi-Civita transformation matrix
     L = L_fx(p)
-    P_j2 = SVector(u[1],u[2],u[3],0)/model.uscale
-    p_dp = -(h/2)*p + ((dot(p,p))/(2*dscale))*L'*P_j2
+
+    # append 0 to end of P_j2 acceleration vector
+    P_j2 = SVector{4}([P_j2;0]*model.tscale^2/model.dscale)
+
+    p_dp = -(h/2)*p + ((dot(p,p))/(2))*L'*P_j2
 
     return SVector(p_prime[1],p_prime[2],p_prime[3],p_prime[4],
                    p_dp[1],p_dp[2],p_dp[3],p_dp[4],
@@ -44,6 +46,28 @@ function RobotDynamics.dynamics(model::KSopt, x, u)
                    2*(p_prime[1]*p[3] + p[1]*p_prime[3] + p_prime[2]*p[4] + p[2]*p_prime[4]))
 
 end
+# function RobotDynamics.dynamics(model::KSopt, x, u)
+#
+#     # unpack state
+#     p = SVector(x[1],x[2],x[3],x[4])
+#     p_prime = SVector(x[5],x[6],x[7],x[8])
+#     h = x[9]
+#
+#     # scale u
+#     # u /= model.uscale
+#
+#     L = L_fx(p)
+#     P_j2 = SVector(u[1],u[2],u[3],0)/model.uscale
+#     p_dp = -(h/2)*p + ((dot(p,p))/(2*dscale))*L'*P_j2
+#
+#     return SVector(p_prime[1],p_prime[2],p_prime[3],p_prime[4],
+#                    p_dp[1],p_dp[2],p_dp[3],p_dp[4],
+#                    -2*dot(p_prime,L'*P_j2),
+#                    dot(p,p),
+#                    2*p'*p_prime,
+#                    2*(p_prime[1]*p[3] + p[1]*p_prime[3] + p_prime[2]*p[4] + p[2]*p_prime[4]))
+#
+# end
 
 # scaling
 dscale = 1e7 # m
@@ -79,7 +103,7 @@ tf = dt*(N-1)
 # obj = LQRObjective(Q, R, Qf, xf, N)
 scaling_num = 10
 r_Desired = 38e6/dscale#4.2#6.77814
-R_scale = 1e-2
+R_scale = 1000000
 Q = Diagonal(SVector{n}([1e-6*ones(10);scaling_num;1000]))
 R = Diagonal(SVector(R_scale,R_scale,R_scale))
 q = SVector{n}([zeros(10);-r_Desired*scaling_num;0])
