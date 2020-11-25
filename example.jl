@@ -42,6 +42,7 @@ cons = ConstraintList(n,m,N)
 add_constraint!(cons, GoalConstraint(xf), N)
 add_constraint!(cons, BoundConstraint(n,m, u_min=-10, u_max=10), 1:N-1)
 
+
 # Create and solve problem
 prob = Problem(model, obj, xf, tf, x0=x0, constraints=cons)
 solver = ALTROSolver(prob)

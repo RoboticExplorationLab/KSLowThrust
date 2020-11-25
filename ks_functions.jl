@@ -6,6 +6,7 @@
 #   dV/dt = V_dot
 #   dV/ds = V_prime
 using StaticArrays
+using LinearAlgebra
 function L_fx(u)
 
     return @SMatrix [u[1] -u[2] -u[3]  u[4];

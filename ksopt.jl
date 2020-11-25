@@ -30,9 +30,11 @@ function RobotDynamics.dynamics(model::KSopt, x, u)
     h = x[9]
 
     # scale u
-    u /= model.uscale
+    # u /= model.uscale
 
-    p_dp = -(h/2)*p + (R/(2*dscale))*L_fx(p)'*SVector(u[1],u[2],u[3],0)
+    L = L_fx(p)
+    P_j2 = SVector(u[1],u[2],u[3],0)/model.uscale
+    p_dp = -(h/2)*p + ((dot(p,p))/(2*dscale))*L'*P_j2
 
     return SVector(p_prime[1],p_prime[2],p_prime[3],p_prime[4],
                    p_dp[1],p_dp[2],p_dp[3],p_dp[4],
@@ -65,22 +67,92 @@ x0 = SVector{12}([p_0; p_prime_0; h_0; t_0; norm(R_0); R_0[3]])
 
 # time stuff
 N = 1001
-dt = 2.0
+dt = 1.0
 tf = dt*(N-1)
 
 # cost function
-Q = Diagonal(SVector{n}([zeros(10);1;1.0]))
-R = Diagonal(@SVector fill(1.0, m))
-r_Desired = 42e6/dscale
-xf = SVector{n}([zeros(10);r_Desired;0])
-Qf = 10*Q
-obj = LQRObjective(Q, R, Qf, xf, N)
+# Q = 10000*Diagonal(SVector{n}([zeros(10);1;0]))
+# R = 1*Diagonal(@SVector fill(1.0, m))
+# r_Desired = 42e6/dscale
+# xf = SVector{n}([zeros(10);r_Desired;0])
+# Qf = 10*Q
+# obj = LQRObjective(Q, R, Qf, xf, N)
+scaling_num = 10
+r_Desired = 38e6/dscale#4.2#6.77814
+R_scale = 1e-2
+Q = Diagonal(SVector{n}([1e-6*ones(10);scaling_num;1000]))
+R = Diagonal(SVector(R_scale,R_scale,R_scale))
+q = SVector{n}([zeros(10);-r_Desired*scaling_num;0])
+costfun = QuadraticCost(Q,R,q=q)
+costfun_term = QuadraticCost(Q,R,q=q)
+obj = Objective(costfun, costfun_term, N)
+
 
 # constraints
 cons = ConstraintList(n,m,N-1)
-u_bnd = 1000
-maxThrust = NormConstraint(n, m, u_bnd, TO.SecondOrderCone(), :control)
-TO.add_constraint!(cons, maxThrust, 1:N-1)
+# u_bnd = 10000000
+# maxThrust = NormConstraint(n, m, u_bnd, TO.SecondOrderCone(), :control)
+# TO.add_constraint!(cons, maxThrust, 1:N-1)
+add_constraint!(cons, BoundConstraint(n,m, u_min=-1000, u_max=1000), 1:N-1)
 
-prob = Problem(model, obj, xf, tf, x0=x0, constraints=cons,integration=RD.RK4)
-solver = ALTROSolver(prob)
+xf = randn(n)
+xf[11] = 4.2
+xf = SVector{n}(xf)
+prob = Problem(model, obj,xf, tf, x0=x0, constraints=cons,integration=RD.RK4)
+# prob = Problem(model, obj,xf*1000, tf, x0=x0,integration=RD.RK4)
+opts = SolverOptions(verbose=1,show_summary = true,iterations = 2000,
+projected_newton = false)
+solver = ALTROSolver(prob,opts)
+
+solve!(solver)
+
+X = states(solver)
+function mat_from_vec2(a)
+    "Turn a vector of vectors into a matrix"
+
+
+    rows = length(a[1])
+    columns = length(a)
+    A = zeros(rows,columns)
+
+    for i = 1:columns
+        A[:,i] = a[i]
+    end
+
+    return A
+end
+r_eci_hist = mat_from_vec2([x_from_u(X[i]) for i = 1:length(X)])
+
+
+mat"
+figure
+hold on
+plot3($r_eci_hist(1,:),$r_eci_hist(2,:),$r_eci_hist(3,:))
+axis equal
+hold off
+"
+
+U = mat_from_vec2(controls(solver))
+
+mat"
+figure
+hold on
+plot($U')
+hold off
+"
+
+
+# Q and R
+scaling_num = 10
+r_Desired = 42e6/dscale#4.2#6.77814
+# Q = Diagonal(1e-6*I,n)
+Q = Diagonal(SVector{n}([1e-6*ones(10);scaling_num;1]))
+# Q[11,11]=1*scaling_num
+
+# Q[12,12]= 1
+# Q = Diagonal(Q)
+#R = Diagonal(100000000000.0*I/uscale^2,m)
+R = Diagonal(SVector(1,1,1.0))
+# q = zeros(n)
+q = SVector{n}([zeros(10);-r_Desired*scaling_num;0])
+# q[11] = -r_Desired*scaling_num
