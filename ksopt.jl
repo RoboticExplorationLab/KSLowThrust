@@ -29,7 +29,7 @@ function RobotDynamics.dynamics(model::KSopt, x, u)
     h = x[9]
 
 
-    P_j2 = SVector(u[1],u[2],u[3])
+    P_j2 = SVector(u[1],u[2],u[3])/model.uscale
     # Levi-Civita transformation matrix
     L = L_fx(p)
 
@@ -72,7 +72,7 @@ end
 # scaling
 dscale = 1e7 # m
 tscale = 200 # s
-uscale = 1000000.0;
+uscale = 1000.0;
 μ = 3.986004418e14 *(tscale^2)/(dscale^3)
 model = KSopt(μ,tscale, dscale, uscale)
 Base.size(::KSopt) = 12,3
@@ -91,7 +91,7 @@ x0 = SVector{12}([p_0; p_prime_0; h_0; t_0; norm(R_0); R_0[3]])
 
 # time stuff
 N = 1001
-dt = 1.0
+dt = 3.0
 tf = dt*(N-1)
 
 # cost function
@@ -103,8 +103,8 @@ tf = dt*(N-1)
 # obj = LQRObjective(Q, R, Qf, xf, N)
 scaling_num = 10
 r_Desired = 38e6/dscale#4.2#6.77814
-R_scale = 1000000
-Q = Diagonal(SVector{n}([1e-6*ones(10);scaling_num;1000]))
+R_scale = 1
+Q = Diagonal(SVector{n}([1e-6*ones(10);scaling_num;100]))
 R = Diagonal(SVector(R_scale,R_scale,R_scale))
 q = SVector{n}([zeros(10);-r_Desired*scaling_num;0])
 costfun = QuadraticCost(Q,R,q=q)
@@ -114,10 +114,10 @@ obj = Objective(costfun, costfun_term, N)
 
 # constraints
 cons = ConstraintList(n,m,N-1)
-# u_bnd = 10000000
-# maxThrust = NormConstraint(n, m, u_bnd, TO.SecondOrderCone(), :control)
-# TO.add_constraint!(cons, maxThrust, 1:N-1)
-add_constraint!(cons, BoundConstraint(n,m, u_min=-1000, u_max=1000), 1:N-1)
+u_bnd = 5.0
+maxThrust = NormConstraint(n, m, u_bnd, TO.SecondOrderCone(), :control)
+TO.add_constraint!(cons, maxThrust, 1:N-1)
+
 
 xf = randn(n)
 xf[11] = 4.2
@@ -152,7 +152,7 @@ mat"
 figure
 hold on
 plot3($r_eci_hist(1,:),$r_eci_hist(2,:),$r_eci_hist(3,:))
-axis equal
+%axis equal
 hold off
 "
 
