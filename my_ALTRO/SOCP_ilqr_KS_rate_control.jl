@@ -64,7 +64,7 @@ function LQR_cost(Q,R,x,u,xf)
     return .5*(x-xf)'*Q*(x - xf) + .5*u'*R*u
 end
 function c_fx(x,u)
-    u_max = 5.0
+    u_max = 3.0
     return [x[12:14];u_max]
 end
 function Π(x)
