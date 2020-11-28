@@ -1,0 +1,8 @@
+[deps]
+Attitude = "8b3d34c0-dc4a-4a06-a8c8-4215f240a648"
+ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
+Infiltrator = "5903a43b-9cc3-4c30-8d17-598619ec4e9b"
+JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
+MATLAB = "10e44e05-a98a-55b3-a45b-ba969058deb6"
+StatProfilerHTML = "a8a75453-ed82-57c9-9e16-4cd1196ecbf5"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
