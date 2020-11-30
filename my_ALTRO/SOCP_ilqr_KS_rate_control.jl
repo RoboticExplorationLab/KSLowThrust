@@ -242,7 +242,7 @@ x0 = vec([0.1, 0.0, 0.0, 0.8048687470637682, 0.0, 0.04647638402647582,
  0.6578137000000001, 0.0,0,0,0])
 xf = SVector{14}([zeros(9);4.2;zeros(4)])
 scaling_num = 10
-R_scale = 1
+R_scale = .4
 udot_scale = 1e-4
 Q = Diagonal(SVector{14}([1e-8*ones(9);scaling_num;10;R_scale*ones(3)]))
 R = Diagonal(SVector(udot_scale,udot_scale,udot_scale))
@@ -253,11 +253,11 @@ uscale = 1000.0;
 global params = (tscale = tscale, uscale = uscale, dscale = dscale,
 dJ_tol = 1e-2)
 dt = 5.0
-N = 1500
+N = 1000
 
 
-μ = 1
-ϕ = 5
+μ = 100
+ϕ = 10
 λ = cfill(4,N-1)
 utraj = cfill(3,N-1)
 xtraj = cfill(12,N-1)
@@ -270,6 +270,9 @@ for i = 1:10
     @info "here is new out loop iteration"
     @show i
     μ*=ϕ
+
+    # xm = mat_from_vec(xtraj)
+    u_norm = [norm(xtraj[i][12:14]) - 1 for i = 1:length(xtraj)]
 end
 
 r_eci_hist = mat_from_vec([x_from_u(xtraj[i]) for i = 1:length(xtraj)])
@@ -321,7 +324,7 @@ end
 xm,um = runit()
 
 using JLD2
-@save "sixty_5_days_3.jld2" xm um
+@save "sixty_5_days_5.jld2" xm um
 
 function get_time_transfer(xm,dt,tscale)
     """get the time in days for a run. This allows us to remove t from state"""
