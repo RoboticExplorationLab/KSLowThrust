@@ -217,6 +217,11 @@ function ilqr(x0,utraj,xf,Q_lqr,Qf_lqr,R_lqr,N,dt,μ,λ)
         if abs(J - Jnew)<params.dJ_tol
             break
         end
+        # else
+        #     # update trajectory and control history
+        #     xtraj .= xnew
+        #     utraj .= unew
+        # end
 
 
         # ----------------------------output stuff-----------------------------
@@ -272,7 +277,13 @@ for i = 1:10
     μ*=ϕ
 
     # xm = mat_from_vec(xtraj)
-    u_norm = [norm(xtraj[i][12:14]) - 1 for i = 1:length(xtraj)]
+    u_norm = [norm(xtraj[i][12:14]) for i = 1:length(xtraj)]
+    con_violation = maximum(u_norm) - 1
+    @info "max constraint violation is $con_violation"
+
+    if con_violation < 1e-4
+        break
+    end
 end
 
 r_eci_hist = mat_from_vec([x_from_u(xtraj[i]) for i = 1:length(xtraj)])
