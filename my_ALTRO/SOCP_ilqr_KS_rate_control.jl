@@ -64,7 +64,7 @@ function LQR_cost(Q,R,x,u,xf)
     return .5*(x-xf)'*Q*(x - xf) + .5*u'*R*u
 end
 function c_fx(x,u)
-    u_max = 3.0
+    u_max = 1.0
     return [x[12:14];u_max]
 end
 function Π(x)
@@ -78,6 +78,8 @@ function Π(x)
         return x
     elseif nv > abs(s)
         return SVector{4}(.5*(1 + s/nv)*[v;nv])
+    else
+        @infiltrate
     end
 end
 
@@ -182,7 +184,11 @@ function ilqr(x0,utraj,xf,Q_lqr,Qf_lqr,R_lqr,N,dt,μ,λ)
             for k = 1:N-1
                 unew[k] = utraj[k] - alpha*l[k] - K[k]*(xnew[k]-xtraj[k])
                 xnew[k+1] = discrete_dynamics(xnew[k],unew[k],(k-1)*dt,dt)
-                Jnew += Lag(Q_lqr,R_lqr,xnew[k],unew[k],xf,λ[k],μ)
+                if hasnan(xnew[k+1])
+                    Jnew += Inf
+                else
+                    Jnew += Lag(Q_lqr,R_lqr,xnew[k],unew[k],xf,λ[k],μ)
+                end
             end
             Jnew += .5*(xnew[N]-xf)'*Q_lqr*(xnew[N] - xf)
 
@@ -245,9 +251,9 @@ dscale = 1e7 # m
 tscale = 200 # s
 uscale = 1000.0;
 global params = (tscale = tscale, uscale = uscale, dscale = dscale,
-dJ_tol = 1e-1)
+dJ_tol = 1e-2)
 dt = 5.0
-N = 500
+N = 1500
 
 
 μ = 1
@@ -315,7 +321,7 @@ end
 xm,um = runit()
 
 using JLD2
-@save "sixty_5_days_2.jld2" xm um
+@save "sixty_5_days_3.jld2" xm um
 
 function get_time_transfer(xm,dt,tscale)
     """get the time in days for a run. This allows us to remove t from state"""

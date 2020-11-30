@@ -1,6 +1,8 @@
 using ForwardDiff, LinearAlgebra, MATLAB, Infiltrator
 using Attitude, StaticArrays
 const FD = ForwardDiff
+using ModelingToolkit
+const MTK = ModelingToolkit
 function cfill(nx,N)
     return [zeros(nx) for i = 1:N]
 end
@@ -15,25 +17,38 @@ function dynamics(x,u,t)
     J = @views params.J
     invJ = @views params.invJ
 
-    return SVector{6}([pdot_from_w(p,ω);
+    hatp = [0 -p[3] p[2]; p[3] 0 -p[1]; -p[2] p[1] 0]
+    return SVector{6}([((1+norm(p)^2)/4) *(   I + 2*(hatp^2 + hatp)/(1+norm(p)^2)   )*ω;
            invJ*(u - ω × (J*ω))])
 end
-function rk4(f, x_n, u, t,dt)
+function discrete_dynamics(x)
 
-    x_n = SVector{6}(x_n)
+    # x_n = SVector{6}(x_n)
+    x_n = @views x[1:6]
+    u = @views x[7:9]
+    t = @views x[10]
+    dt = @views x[11]
 
-    k1 = dt*f(x_n,u,t)
-    k2 = dt*f(x_n+k1/2, u,t+dt/2)
-    k3 = dt*f(x_n+k2/2, u,t+dt/2)
-    k4 = dt*f(x_n+k3, u,t+dt)
+    k1 = dt*dynamics(x_n,u,t)
+    k2 = dt*dynamics(x_n+k1/2, u,t+dt/2)
+    k3 = dt*dynamics(x_n+k2/2, u,t+dt/2)
+    k4 = dt*dynamics(x_n+k3, u,t+dt)
 
 
     return (x_n + (1/6)*(k1+2*k2+2*k3 + k4))
 
 end
-function discrete_dynamics(x,u,t,dt)
-    return rk4(dynamics,x,u,t,dt)
-end
+@variables x_sym[1:11]
+
+sym_out = discrete_dynamics(x_sym)
+
+f_expr = build_function(sym_out,x_sym)
+
+fast_discrete_dynamics = eval(f_expr[1])
+
+# function discrete_dynamics(x,u,t,dt)
+#     return rk4(dynamics,x,u,t,dt)
+# end
 function LQR_cost(Q,R,x,u,xf)
     return .5*(x-xf)'*Q*(x - xf) + .5*u'*R*u
 end

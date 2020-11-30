@@ -1,26 +1,43 @@
 using ForwardDiff, LinearAlgebra, MATLAB, Infiltrator
 using Attitude, StaticArrays
+using ModelingToolkit
 const FD = ForwardDiff
+const MTK = ModelingToolkit
 function cfill(nx,N)
     return [zeros(nx) for i = 1:N]
 end
 function cfill(nu,nx,N)
     return [zeros(nu,nx) for i = 1:N]
 end
-function dynamics(x,u,t)
 
-    p = SVector(x[1],x[2],x[3])
-    ω = SVector(x[4],x[5],x[6])
+function dynamics(x, u,t)
 
-    J = @views params.J
-    invJ = @views params.invJ
+    # unpack state
+    p = SVector(x[1],x[2],x[3],x[4])
+    p_prime = SVector(x[5],x[6],x[7],x[8])
+    h = x[9]
 
-    return SVector{6}([pdot_from_w(p,ω);
-           invJ*(u - ω × (J*ω))])
+
+    P_j2 = SVector(u[1],u[2],u[3])/params.uscale
+    # Levi-Civita transformation matrix
+    L = L_fx(p)
+
+    # append 0 to end of P_j2 acceleration vector
+    P_j2 = SVector{4}([P_j2;0]*params.tscale^2/params.dscale)
+
+    p_dp = -(h/2)*p + ((dot(p,p))/(2))*L'*P_j2
+
+    return SVector(p_prime[1],p_prime[2],p_prime[3],p_prime[4],
+                   p_dp[1],p_dp[2],p_dp[3],p_dp[4],
+                   -2*dot(p_prime,L'*P_j2),
+                   dot(p,p),
+                   2*p'*p_prime,
+                   2*(p_prime[1]*p[3] + p[1]*p_prime[3] + p_prime[2]*p[4] + p[2]*p_prime[4]))
+
 end
 function rk4(f, x_n, u, t,dt)
 
-    x_n = SVector{6}(x_n)
+    # x_n = SVector{6}(x_n)
 
     k1 = dt*f(x_n,u,t)
     k2 = dt*f(x_n+k1/2, u,t+dt/2)
@@ -37,35 +54,13 @@ end
 function LQR_cost(Q,R,x,u,xf)
     return .5*(x-xf)'*Q*(x - xf) + .5*u'*R*u
 end
-# function c_fx(x,u)
-#     # this is for c < 0
-#     # u <= u_max
-#     # u - u_max <= 0
-#     # u >= u_min
-#     #-u <= u_min
-#     #-u + u_min
-#     return [u - params.u_max;
-#            -u + params.u_min]
-# end
-#
-# function Π(z)
-#     out = zeros(eltype(z),length(z))
-#     for i = 1:length(out)
-#         out[i] = min(0,z[i])
-#     end
-#
-#     return out
-# end
 function c_fx(x,u)
-    u_max = 0.25
+    u_max = 10.0
     return [u;u_max]
 end
-
-
 function Π(x)
-    v = x[1:3]
+    v = SVector(x[1],x[2],x[3])
     s = x[4]
-
     nv = norm(v)
 
     if     nv <= -s
@@ -73,23 +68,17 @@ function Π(x)
     elseif nv <= s
         return x
     elseif nv > abs(s)
-        return .5*(1 + s/nv)*[v;nv]
+        return SVector{4}(.5*(1 + s/nv)*[v;nv])
     end
 end
 
 function Lag(Q,R,x,u,xf,λ,μ)
-    # @infiltrate
-    # error()
+
     return (LQR_cost(Q,R,x,u,xf) +
             (1/(2*μ))*(  norm(Π(λ - μ*c_fx(x,u)))^2 - dot(λ,λ)))
+    # return LQR_cost(Q,R,x,u,xf)
 end
-function Lag2(Q,R,x,u,xf,λ,μ)
-    @infiltrate
-    error()
-    return (LQR_cost(Q,R,x,u,xf) +
-            (1/(2*μ))*(  norm(Π(λ - μ*c_fx(x,u)))^2 - dot(λ,λ)))
-end
-# function ilqr(x0,utraj,xf,Q_lqr,Qf_lqr,R_lqr,N,dt,μ,λ)
+
 function ilqr(x0,utraj,xf,Q_lqr,Qf_lqr,R_lqr,N,dt,μ,λ)
 
     # state and control dimensions
@@ -184,11 +173,7 @@ function ilqr(x0,utraj,xf,Q_lqr,Qf_lqr,R_lqr,N,dt,μ,λ)
             for k = 1:N-1
                 unew[k] = utraj[k] - alpha*l[k] - K[k]*(xnew[k]-xtraj[k])
                 xnew[k+1] = discrete_dynamics(xnew[k],unew[k],(k-1)*dt,dt)
-                if hasnan(xnew[k+1])
-                    Jnew += Inf
-                else
-                    Jnew += Lag(Q_lqr,R_lqr,xnew[k],unew[k],xf,λ[k],μ)
-                end
+                Jnew += Lag(Q_lqr,R_lqr,xnew[k],unew[k],xf,λ[k],μ)
             end
             Jnew += .5*(xnew[N]-xf)'*Q_lqr*(xnew[N] - xf)
 
@@ -237,57 +222,70 @@ end
 
 
 function runit()
-phi_0 = deg2rad(140)*normalize([1;2;3.0])
-x0 = SVector{6}([p_from_phi(phi_0);0;0;0])
-xf = @SVector zeros(6)
-Q = Diagonal(@SVector ones(6))
+x0 = vec([0.1, 0.0, 0.0, 0.8048687470637682, 0.0, 0.04647638402647582,
+ -0.06869088938897237, 0.0, 0.0033246990106028697, 0.0,
+ 0.6578137000000001, 0.0])
+xf = SVector{12}([zeros(10);4.2;0])
+scaling_num = 10
+R_scale = 1e-2
+Q = Diagonal(SVector{12}([1e-8*ones(10);scaling_num;10]))
+R = Diagonal(SVector(R_scale,R_scale,R_scale))
 Qf = 10*Q
-R = Diagonal(@SVector ones(3))
-u_min = -0.05*(@SVector ones(3))
-u_max = 0.05*(@SVector ones(3))
-
-global params = (J = Diagonal(SVector(1,2,3.0)),invJ= Diagonal(SVector(1,0.5,1/3)),
-dJ_tol = 1e-4, u_min = u_min, u_max = u_max,ϵ_c = 1e-4)
-dt = 0.1
-N = 300
+dscale = 1e7 # m
+tscale = 200 # s
+uscale = 10000.0;
+global params = (tscale = tscale, uscale = uscale, dscale = dscale,
+dJ_tol = 1e-1)
+dt = 5.0
+N = 1500
 
 
 μ = 1
+ϕ = 5
 λ = cfill(4,N-1)
 utraj = cfill(3,N-1)
-xtraj = cfill(6,N-1)
+xtraj = cfill(12,N-1)
 # constraint_violation = zeros(6,N-1)
-t1 = time()
-for i = 1:5
+for i = 1:10
     xtraj, utraj, K = ilqr(x0,utraj,xf,Q,Qf,R,N,dt,μ,λ)
-    # @show "done with 1"
-    # penalty update
     for k = 1:length(λ)
-        # @show k
-
-        # z = λ[k] - μ*c_fx(xtraj[k],utraj[k])
-        # @infiltrate
         λ[k] = Π( λ[k] - μ*c_fx(xtraj[k],utraj[k]) )
     end
-    # @show "update done"
-    # for ii = 1:(length(xtraj)-1)
-    #     constraint_violation[:,i] = max.(0,c_fx(xtraj[ii],utraj[ii]))
-    # end
-    # max_c = maximum(vec(constraint_violation))
-    # @show max_c
-    μ*=5
+    μ*=ϕ
 end
-print(time() - t1)
+
+function mat_from_vec2(a)
+    "Turn a vector of vectors into a matrix"
 
 
-xm = mat_from_vec(xtraj)
-um = mat_from_vec(utraj)
+    rows = length(a[1])
+    columns = length(a)
+    A = zeros(rows,columns)
+
+    for i = 1:columns
+        A[:,i] = a[i]
+    end
+
+    return A
+end
+r_eci_hist = mat_from_vec2([x_from_u(xtraj[i]) for i = 1:length(xtraj)])
+
+
 mat"
 figure
 hold on
-plot($xm')
+plot3($r_eci_hist(1,:),$r_eci_hist(2,:),$r_eci_hist(3,:))
+%axis equal
 hold off
 "
+xm = mat_from_vec(xtraj)
+um = mat_from_vec(utraj)
+# mat"
+# figure
+# hold on
+# plot($xm')
+# hold off
+# "
 mat"
 figure
 hold on
@@ -306,6 +304,30 @@ hold off
 
 
 
-
+    return xm, um
 end
-runit()
+
+xm,um = runit()
+
+using JLD2
+@save "sixty_5_days_2.jld2" xm um
+
+function get_time_transfer(xm,dt,tscale)
+    """get the time in days for a run. This allows us to remove t from state"""
+    X = vec_from_mat(xm)
+    t = 0.0
+    for i = 1:(length(X)-1)
+
+        p0 = X[i][1:4]
+        R0 = dot(p0,p0)
+
+        p1 = X[i+1][1:4]
+        R1 = dot(p1,p1)
+
+        t += (R0 + R1)*dt/2
+    end
+    t_days = t*tscale/(24*3600)
+    return t_days
+end
+
+t_days = get_time_transfer(xm,5,tscale)
