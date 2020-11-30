@@ -111,6 +111,11 @@ function ilqr(x0,utraj,xf,Q_lqr,Qf_lqr,R_lqr,N,dt,μ,λ)
     K = cfill(Nu,Nx,N-1)
     l = cfill(Nu,N-1)
 
+    # initial stuff
+    xtraj_initial = copy(xtraj)
+    utraj_initial = copy(utraj)
+    solver_failed = false
+
     # allocate the new states and controls
     xnew = cfill(Nx,N)
     unew = cfill(Nu,N-1)
@@ -202,6 +207,7 @@ function ilqr(x0,utraj,xf,Q_lqr,Qf_lqr,R_lqr,N,dt,μ,λ)
                 # error("Line Search Failed")
                 print("line search failed")
 
+                solver_failed = true
                 # we do this to get out of it
                 Jnew = copy(J)
                 break
@@ -237,7 +243,11 @@ function ilqr(x0,utraj,xf,Q_lqr,Qf_lqr,R_lqr,N,dt,μ,λ)
 
     end
 
-    return xtraj, utraj, K
+    if solver_failed
+        return xtraj_initial, utraj_initial, K
+    else
+        return xtraj, utraj, K
+    end
 end
 
 
@@ -261,8 +271,8 @@ dt = 5.0
 N = 1000
 
 
-μ = 100
-ϕ = 10
+μ = 1e-2
+ϕ = 5
 λ = cfill(4,N-1)
 utraj = cfill(3,N-1)
 xtraj = cfill(12,N-1)
@@ -335,7 +345,7 @@ end
 xm,um = runit()
 
 using JLD2
-@save "sixty_5_days_5.jld2" xm um
+@save "sixty_5_days_6.jld2" xm um
 
 function get_time_transfer(xm,dt,tscale)
     """get the time in days for a run. This allows us to remove t from state"""
