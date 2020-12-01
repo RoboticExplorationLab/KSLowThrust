@@ -71,7 +71,7 @@ end
 
 # scaling
 dscale = 1e7 # m
-tscale = 200 # s
+tscale = 20000 # s
 uscale = 1000.0;
 μ = 3.986004418e14 *(tscale^2)/(dscale^3)
 model = KSopt(μ,tscale, dscale, uscale)

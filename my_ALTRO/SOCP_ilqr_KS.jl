@@ -235,7 +235,7 @@ uscale = 10000.0;
 global params = (tscale = tscale, uscale = uscale, dscale = dscale,
 dJ_tol = 1e-1)
 dt = 5.0
-N = 1500
+N = 500
 
 
 μ = 1

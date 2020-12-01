@@ -64,7 +64,8 @@ function LQR_cost(Q,R,x,u,xf)
     return .5*(x-xf)'*Q*(x - xf) + .5*u'*R*u
 end
 function c_fx(x,u)
-    u_max = 1.0
+    # u_max = 1.0
+    u_max = 2.0
     return [x[12:14];u_max]
 end
 function Π(x)
@@ -136,7 +137,7 @@ function ilqr(x0,utraj,xf,Q_lqr,Qf_lqr,R_lqr,N,dt,μ,λ)
     Bk = zeros(Nx,Nu)
 
     # main loop
-    for iter = 1:1500
+    for iter = 1:3000
 
         # cost to go matrices at the end of the trajectory
         S .= Qf_lqr
@@ -252,9 +253,8 @@ end
 
 
 function runit()
-x0 = vec([0.1, 0.0, 0.0, 0.8048687470637682, 0.0, 0.04647638402647582,
- -0.06869088938897237, 0.0, 0.0033246990106028697,
- 0.6578137000000001, 0.0,0,0,0])
+x0 = vec([0.1, 0.0, 0.0, 0.8048687470637682, 0.0, 4.647638402647582,
+-6.869088938897239, 0.0, 33.24699010602865, 0.6578137000000001, 0.0,0,0,0])
 xf = SVector{14}([zeros(9);4.2;zeros(4)])
 scaling_num = 10
 R_scale = .4
@@ -263,16 +263,16 @@ Q = Diagonal(SVector{14}([1e-8*ones(9);scaling_num;10;R_scale*ones(3)]))
 R = Diagonal(SVector(udot_scale,udot_scale,udot_scale))
 Qf = 10*Q
 dscale = 1e7 # m
-tscale = 200 # s
-uscale = 1000.0;
+tscale = 20000 # s
+uscale = 1000.0
 global params = (tscale = tscale, uscale = uscale, dscale = dscale,
-dJ_tol = 1e-2)
-dt = 5.0
-N = 1000
+dJ_tol = 1e-1)
+dt = 5.0e-2
+N = 500
 
 
-μ = 1e-2
-ϕ = 5
+μ = 100
+ϕ = 3
 λ = cfill(4,N-1)
 utraj = cfill(3,N-1)
 xtraj = cfill(12,N-1)
@@ -288,12 +288,12 @@ for i = 1:10
 
     # xm = mat_from_vec(xtraj)
     u_norm = [norm(xtraj[i][12:14]) for i = 1:length(xtraj)]
-    con_violation = maximum(u_norm) - 1
+    con_violation = max(0,maximum(u_norm) - 2)
     @info "max constraint violation is $con_violation"
-
-    if con_violation < 1e-4
-        break
-    end
+    #
+    # if con_violation < 1e-4
+    #     break
+    # end
 end
 
 r_eci_hist = mat_from_vec([x_from_u(xtraj[i]) for i = 1:length(xtraj)])
@@ -344,8 +344,8 @@ end
 
 xm,um = runit()
 
-using JLD2
-@save "sixty_5_days_6.jld2" xm um
+# using JLD2
+# @save "sixty_5_days_8.jld2" xm um
 
 function get_time_transfer(xm,dt,tscale)
     """get the time in days for a run. This allows us to remove t from state"""
@@ -365,4 +365,4 @@ function get_time_transfer(xm,dt,tscale)
     return t_days
 end
 
-t_days = get_time_transfer(xm,5,params.tscale)
+t_days = get_time_transfer(xm,5e-2,params.tscale)

@@ -1,6 +1,7 @@
 [deps]
 Attitude = "8b3d34c0-dc4a-4a06-a8c8-4215f240a648"
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+Crayons = "a8cc5b0e-0ffa-5ad4-8c14-923d3ee1735f"
 ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 Infiltrator = "5903a43b-9cc3-4c30-8d17-598619ec4e9b"
 JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
