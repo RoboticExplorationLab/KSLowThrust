@@ -1,3 +1,6 @@
+using Pkg; cd(joinpath(dirname(@__DIR__),"my_ALTRO"))
+Pkg.activate(".")
+
 using LinearAlgebra, SparseArrays, SuiteSparse, Attitude
 using ForwardDiff
 using StaticArrays
