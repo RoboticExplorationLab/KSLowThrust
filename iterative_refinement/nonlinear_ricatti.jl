@@ -177,28 +177,18 @@ function ilqr_stuff(A,B,Nx,Nu,x0,N,Q,Qf,R)
 end
 
 l,K = ilqr_stuff(A,B,nx,nu,x0,N,Q,Qf,R)
-
 xnew = copy(xtraj)
 unew = copy(utraj)
 alpha = 1.0
 for k = 1:N-1
     unew[k] = utraj[k] - alpha*l[k] - K[k]*(xnew[k]-xtraj[k])
-    # xnew[k+1] = discrete_dynamics(xnew[k],unew[k],(k-1)*dt,dt)
     xnew[k+1] = xtraj[k+1] + A[k]*(xnew[k]-xtraj[k]) + B[k]*unew[k]
 end
 
 
 #control checking
-u_error = [norm(dU_kkt[i] + l[i]) for i = 1:length(l)]
 u_real_error = [norm(dU_kkt[i] - unew[i]) for i = 1:length(l)]
-mat"
-figure
-title('Error between KKT and iLQR')
-hold on
-plot($u_error)
-hold off
-%saveas(gcf,'ilqrvskkt.png')
-"
+
 mat"
 figure
 title('Error between KKT and iLQR')
