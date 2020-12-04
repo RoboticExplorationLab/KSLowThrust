@@ -1,5 +1,5 @@
-using Pkg; cd(joinpath(dirname(@__DIR__),"my_ALTRO"))
-Pkg.activate(".")
+# using Pkg; cd(joinpath(dirname(@__DIR__),"my_ALTRO"))
+# Pkg.activate(".")
 
 using LinearAlgebra, SparseArrays, SuiteSparse, Attitude
 using ForwardDiff
@@ -172,61 +172,78 @@ function ilqr_stuff(A,B,Nx,Nu,x0,N,Q,Qf,R)
         # @show k
     end
 
-    return l
+    return l,K
 
 end
 
-l = ilqr_stuff(A,B,nx,nu,x0,N,Q,Qf,R)
+l,K = ilqr_stuff(A,B,nx,nu,x0,N,Q,Qf,R)
+
+xnew = copy(xtraj)
+unew = copy(utraj)
+alpha = 1.0
+for k = 1:N-1
+    unew[k] = utraj[k] - alpha*l[k] - K[k]*(xnew[k]-xtraj[k])
+    # xnew[k+1] = discrete_dynamics(xnew[k],unew[k],(k-1)*dt,dt)
+    xnew[k+1] = xtraj[k+1] + A[k]*(xnew[k]-xtraj[k]) + B[k]*unew[k]
+end
 
 
 #control checking
 u_error = [norm(dU_kkt[i] + l[i]) for i = 1:length(l)]
-
+u_real_error = [norm(dU_kkt[i] - unew[i]) for i = 1:length(l)]
 mat"
 figure
 title('Error between KKT and iLQR')
 hold on
 plot($u_error)
 hold off
-saveas(gcf,'ilqrvskkt.png')
+%saveas(gcf,'ilqrvskkt.png')
 "
-
-# # now i'll verify KKT solution with convex.jl
-using Convex, Mosek, MosekTools
-
-# delta x and delta u
-δx = Variable(nx,N)
-δu = Variable(nu,N-1)
-
-# initial condition constraint
-cons = Constraint[δx[:,1] == zeros(nx)]
-
-# linearized dynamics constraints
-for i = 1:N-1
-    push!(cons,δx[:,i+1] == A[i]*δx[:,i] + B[i]*δu[:,i])
-end
-
-# cost function
-J = 0
-for i = 1:N-1
-    J+= quadform((xtraj[i] + δx[:,i]),Q)
-    J+= quadform((utraj[i] + δu[:,i]),R)
-end
-J+= quadform((xtraj[N] + δx[:,N]),Qf)
-
-#solve
-problem = minimize(J, cons)
-solve!(problem, () -> Mosek.Optimizer(MSK_DPAR_INTPNT_CO_TOL_DFEAS=1e-15))
-
-
-u_cvx = vec_from_mat(evaluate(δu))
-
-u_cvx_error = [norm(dU_kkt[i] - u_cvx[i]) for i = 1:length(l)]
-
 mat"
 figure
-title('Error between KKT and Mosek solution')
+title('Error between KKT and iLQR')
 hold on
-plot($u_cvx_error)
+plot($u_real_error)
 hold off
+%saveas(gcf,'ilqrvskkt.png')
 "
+
+# # # now i'll verify KKT solution with convex.jl
+# using Convex, Mosek, MosekTools
+#
+# # delta x and delta u
+# δx = Variable(nx,N)
+# δu = Variable(nu,N-1)
+#
+# # initial condition constraint
+# cons = Constraint[δx[:,1] == zeros(nx)]
+#
+# # linearized dynamics constraints
+# for i = 1:N-1
+#     push!(cons,δx[:,i+1] == A[i]*δx[:,i] + B[i]*δu[:,i])
+# end
+#
+# # cost function
+# J = 0
+# for i = 1:N-1
+#     J+= quadform((xtraj[i] + δx[:,i]),Q)
+#     J+= quadform((utraj[i] + δu[:,i]),R)
+# end
+# J+= quadform((xtraj[N] + δx[:,N]),Qf)
+#
+# #solve
+# problem = minimize(J, cons)
+# solve!(problem, () -> Mosek.Optimizer(MSK_DPAR_INTPNT_CO_TOL_DFEAS=1e-15))
+#
+#
+# u_cvx = vec_from_mat(evaluate(δu))
+#
+# u_cvx_error = [norm(dU_kkt[i] - u_cvx[i]) for i = 1:length(l)]
+#
+# mat"
+# figure
+# title('Error between KKT and Mosek solution')
+# hold on
+# plot($u_cvx_error)
+# hold off
+# "
