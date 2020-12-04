@@ -178,3 +178,33 @@ MTK.sparsejacobian(sym_out2,x_sym)
 
 # @btime FD.jacobian(fast_rk4,randn(19))
 # jac = MTK.sparsejacobian(sym_out,x_sym)
+
+
+# copy over old trajectory
+# xnew = copy(xtraj)
+# unew = copy(utraj)
+dX_ilqr = cfill(nx,N)
+dU_ilqr = cfill(nu,N-1)
+dX_ilqr[1] = zeros(nx)
+xnew = cfill(nx,N)
+unew = cfill(nu,N-1)
+
+
+α = 1.0
+
+# forward rollout to get the correct dU_ilqr
+for k = 1:N-1
+
+    # δu = -α*l - K*δx
+    dU_ilqr[k] = -α*l[k] - K[k]*dX_ilqr[k]
+
+    # unew = uold + δu
+    unew[k] = utraj[k] + dU_ilqr[k]
+
+    # rollout with xnew = xold + A*δx + B*δu
+    xnew[k+1] = xtraj[k+1] + A[k]*dX_ilqr[k] + B[k]*dU_ilqr[k]
+
+    # δx
+    dX_ilqr[k+1] = xnew[k+1]-xtraj[k+1]
+end
+# dX_ilqr[N] = xnew[N] - xtraj[N]

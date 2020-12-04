@@ -7,19 +7,10 @@ using StaticArrays
 const FD = ForwardDiff
 
 # random utilities
-function cfill(nx,N)
-    return [zeros(nx) for i = 1:N]
-end
-function cfill(nu,nx,N)
-    return [zeros(nu,nx) for i = 1:N]
-end
 function dynamics(x,u,t)
 
     p = SVector(x[1],x[2],x[3])
     ω = SVector(x[4],x[5],x[6])
-
-    J = @views params.J
-    invJ = @views params.invJ
 
     return SVector{6}([pdot_from_w(p,ω);
            invJ*(u - ω × (J*ω))])
@@ -38,7 +29,7 @@ function discrete_dynamics(x,u,t,dt)
     return rk4(dynamics,x,u,t,dt)
 end
 
-# forward rollout for stuff
+# forward rollout
 x0 = [p_from_phi(deg2rad(10)*normalize(randn(3)));
       deg2rad(10)*normalize(randn(3))]
 nx = 6
@@ -47,7 +38,7 @@ dt = 0.1
 N = 100
 J = Diagonal(SVector(1,2,3))
 invJ = inv(J)
-params = (J=J,invJ=invJ)
+
 function rollout(x0,utraj,dt,N)
     u = zeros(3)
     X = cfill(nx,N)
@@ -58,16 +49,17 @@ function rollout(x0,utraj,dt,N)
     return X
 end
 
-# utraj = cfill(nu,N-1)
-# utraj = [randn(nu) for i = 1:N-1]
-utraj = [[0.001;0.001;0.001] for i = 1:N-1]
+# initial controls and states
+utraj = [randn(nu) for i = 1:N-1]
 xtraj = rollout(x0,utraj,dt,N)
 
+# cost function
 Q = sparse(Array(float(I(nx))))
-Qf = 1*Q
+Qf = 10*Q
 R = 2*sparse(Array(float(I(nu))))
 
 function gen_AB(xtraj,utraj,dt,N)
+    """Create the A and B matrices for the trajectory"""
     A = cfill(nx,nx,N)
     B = cfill(nx,nu,N)
     for i = 1:N-1
@@ -77,7 +69,6 @@ function gen_AB(xtraj,utraj,dt,N)
         _B_fx(u) =  discrete_dynamics(xtraj[i],u,(i-1)*dt,dt)
         B[i] = FD.jacobian(_B_fx,utraj[i])
     end
-
     return A,B
 end
 
@@ -85,6 +76,8 @@ A,B = gen_AB(xtraj,utraj,dt,N)
 
 
 function kkt_stuff(A,B,nx,nu,x0,N,Q,Qf,R)
+    """Solve for the updated dU and dX using direct collocation"""
+
     # number of constraints
     nc = (N-1)*nx
 
@@ -123,15 +116,16 @@ function kkt_stuff(A,B,nx,nu,x0,N,Q,Qf,R)
     end
     q[idx_x[N]] = Qf*xtraj[N]
 
-    # KKT System
+    # KKT system
     kkt_A = [P C';
              C zeros(size(C,1),size(C,1))]
 
     kkt_b = [-q;d]
 
+    # solve the KKT system
     z_sol = kkt_A\kkt_b
 
-
+    # unpack the dX and dU from the solution
     dX = [z_sol[idx_x[i]] for i = 1:length(idx_x)]
     dU = [z_sol[idx_u[i]] for i = 1:length(idx_u)]
 
@@ -141,8 +135,7 @@ end
 dX_kkt, dU_kkt = kkt_stuff(A,B,nx,nu,x0,N,Q,Qf,R)
 
 function ilqr_stuff(A,B,Nx,Nu,x0,N,Q,Qf,R)
-    K = cfill(Nu,Nx,N-1)
-    l = cfill(Nu,N-1)
+    """Solve for an iteration with iLQR instead of direct with KKT"""
 
     # allocate K and l
     K = cfill(Nu,Nx,N-1)
@@ -155,11 +148,13 @@ function ilqr_stuff(A,B,Nx,Nu,x0,N,Q,Qf,R)
     # backwards pass
     for k = (N-1):-1:1
 
+        # cost gradients at this time step
         q = Q*xtraj[k]
         r = R*utraj[k]
 
-        Ak = A[k]
-        Bk = B[k]
+        # jacobians
+        Ak = @views A[k]
+        Bk = @views B[k]
 
         # linear solve
         l[k] = (R + Bk'*S*Bk)\(r + Bk'*s)
@@ -172,78 +167,105 @@ function ilqr_stuff(A,B,Nx,Nu,x0,N,Q,Qf,R)
         # update S's
         S = copy(Snew)
         s = copy(snew)
-        # @show k
     end
 
-    return l,K
+    # copy over old trajectory
+    xnew = copy(xtraj)
+    unew = copy(utraj)
+    dX_ilqr = cfill(nx,N)
+    dU_ilqr = cfill(nu,N-1)
+
+    α = 1.0
+
+    # forward rollout to get the correct dU_ilqr
+    for k = 1:N-1
+
+        # δx
+        dX_ilqr[k] = xnew[k]-xtraj[k]
+
+        # δu = -α*l - K*δx
+        dU_ilqr[k] = -α*l[k] - K[k]*dX_ilqr[k]
+
+        # unew = uold + δu
+        unew[k] = utraj[k] + dU_ilqr[k]
+
+        # rollout with xnew = xold + A*δx + B*δu
+        xnew[k+1] = xtraj[k+1] + A[k]*dX_ilqr[k] + B[k]*dU_ilqr[k]
+    end
+
+    # δx for last knot point
+    dX_ilqr[N] = xnew[N] - xtraj[N]
+
+    return dX_ilqr, dU_ilqr
 
 end
 
-l,K = ilqr_stuff(A,B,nx,nu,x0,N,Q,Qf,R)
-xnew = copy(xtraj)
-unew = copy(utraj)
-dU_ilqr = cfill(nu,N-1)
-alpha = 1.0
-for k = 1:N-1
-    dU_ilqr[k] = -alpha*l[k] - K[k]*(xnew[k]-xtraj[k])
-    unew[k] = utraj[k] + dU_ilqr[k]
-    # unew[k] = dU_ilqr[k]
-    xnew[k+1] = xtraj[k+1] + A[k]*(xnew[k]-xtraj[k]) + B[k]*(unew[k]-utraj[k])
-end
+dX_ilqr, dU_ilqr = ilqr_stuff(A,B,nx,nu,x0,N,Q,Qf,R)
 
 
 #control checking
-u_real_error = [norm(dU_kkt[i] - dU_ilqr[i]) for i = 1:length(l)]
+u_error = [norm(dU_kkt[i] - dU_ilqr[i]) for i = 1:length(dU_ilqr)]
+x_error = [norm(dX_kkt[i] - dX_ilqr[i]) for i = 1:length(dX_ilqr)]
+mat"
+figure
+title('Control Error between KKT and iLQR')
+hold on
+plot($u_error)
+hold off
+%saveas(gcf,'ilqrvskkt_u.png')
+"
 
 mat"
 figure
-title('Error between KKT and iLQR')
+title('State Error between KKT and iLQR')
 hold on
-plot($u_real_error)
+plot($x_error)
 hold off
-%saveas(gcf,'ilqrvskkt.png')
+%saveas(gcf,'ilqrvskkt_x.png')
 "
+
+# NOTE: this commented out part is just to test the KKT solution if you want
 
 # # now i'll verify KKT solution with convex.jl
-using Convex, Mosek, MosekTools
-
-function cvx_stuff()
-# delta x and delta u
-δx = Variable(nx,N)
-δu = Variable(nu,N-1)
-
-# initial condition constraint
-cons = Constraint[δx[:,1] == zeros(nx)]
-
-# linearized dynamics constraints
-for i = 1:N-1
-    push!(cons,δx[:,i+1] == A[i]*δx[:,i] + B[i]*δu[:,i])
-end
-
-# cost function
-J = 0
-for i = 1:N-1
-    J+= quadform((xtraj[i] + δx[:,i]),Q)
-    J+= quadform((utraj[i] + δu[:,i]),R)
-end
-J+= quadform((xtraj[N] + δx[:,N]),Qf)
-
-#solve
-problem = minimize(J, cons)
-solve!(problem, () -> Mosek.Optimizer(MSK_DPAR_INTPNT_CO_TOL_DFEAS=1e-15))
-
-
-u_cvx = vec_from_mat(evaluate(δu))
-
-return u_cvx
-end
-u_cvx = cvx_stuff()
-u_cvx_error = [norm(dU_kkt[i] - u_cvx[i]) for i = 1:length(l)]
-
-mat"
-figure
-title('Error between KKT and Mosek solution')
-hold on
-plot($u_cvx_error)
-hold off
-"
+# using Convex, Mosek, MosekTools
+#
+# function cvx_stuff()
+# # delta x and delta u
+# δx = Variable(nx,N)
+# δu = Variable(nu,N-1)
+#
+# # initial condition constraint
+# cons = Constraint[δx[:,1] == zeros(nx)]
+#
+# # linearized dynamics constraints
+# for i = 1:N-1
+#     push!(cons,δx[:,i+1] == A[i]*δx[:,i] + B[i]*δu[:,i])
+# end
+#
+# # cost function
+# J = 0
+# for i = 1:N-1
+#     J+= quadform((xtraj[i] + δx[:,i]),Q)
+#     J+= quadform((utraj[i] + δu[:,i]),R)
+# end
+# J+= quadform((xtraj[N] + δx[:,N]),Qf)
+#
+# #solve
+# problem = minimize(J, cons)
+# solve!(problem, () -> Mosek.Optimizer(MSK_DPAR_INTPNT_CO_TOL_DFEAS=1e-15))
+#
+#
+# u_cvx = vec_from_mat(evaluate(δu))
+#
+# return u_cvx
+# end
+# u_cvx = cvx_stuff()
+# u_cvx_error = [norm(dU_kkt[i] - u_cvx[i]) for i = 1:length(l)]
+#
+# mat"
+# figure
+# title('Error between KKT and Mosek solution')
+# hold on
+# plot($u_cvx_error)
+# hold off
+# "

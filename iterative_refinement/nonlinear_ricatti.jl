@@ -6,13 +6,6 @@ using ForwardDiff
 using StaticArrays
 const FD = ForwardDiff
 
-# random utilities
-function cfill(nx,N)
-    return [zeros(nx) for i = 1:N]
-end
-function cfill(nu,nx,N)
-    return [zeros(nu,nx) for i = 1:N]
-end
 function dynamics(x,u,t)
 
     p = SVector(x[1],x[2],x[3])
@@ -38,7 +31,7 @@ function discrete_dynamics(x,u,t,dt)
     return rk4(dynamics,x,u,t,dt)
 end
 
-# forward rollout for stuff
+# forward rollout
 x0 = [p_from_phi(deg2rad(10)*normalize(randn(3)));
       deg2rad(10)*normalize(randn(3))]
 nx = 6
@@ -58,6 +51,7 @@ function rollout(x0,utraj,dt,N)
     return X
 end
 
+# initial
 utraj = cfill(nu,N-1)
 xtraj = rollout(x0,utraj,dt,N)
 
