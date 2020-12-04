@@ -186,9 +186,9 @@ dU_ilqr = cfill(nu,N-1)
 alpha = 1.0
 for k = 1:N-1
     dU_ilqr[k] = -alpha*l[k] - K[k]*(xnew[k]-xtraj[k])
-    # unew[k] = -utraj[k] + dU_ilqr[k]
-    unew[k] = dU_ilqr[k]
-    xnew[k+1] = xtraj[k+1] + A[k]*(xnew[k]-xtraj[k]) + B[k]*unew[k]
+    unew[k] = utraj[k] + dU_ilqr[k]
+    # unew[k] = dU_ilqr[k]
+    xnew[k+1] = xtraj[k+1] + A[k]*(xnew[k]-xtraj[k]) + B[k]*(unew[k]-utraj[k])
 end
 
 
