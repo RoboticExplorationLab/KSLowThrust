@@ -1,27 +1,30 @@
 using LinearAlgebra, SparseArrays, SuiteSparse
+using Attitude
 
-function cfill(nx,N)
-    return [zeros(nx) for i = 1:N]
-end
-function cfill(nu,nx,N)
-    return [zeros(nu,nx) for i = 1:N]
-end
-function ctrb(A,B)
-    nx,nu = size(B)
-    C = zeros(nx,nu*nx)
-
-    for i = 1:nx
-        C[:,(i-1)*nu .+ (1:nu)] = A^(i-1)*B
-    end
-    if rank(C) != nx
-        error("not controllable")
-    end
-end
-nx = 5
-nu = 3
-A = randn(nx,nx)
-B = randn(nx,nu)
-ctrb(A,B)
+# function ctrb(A,B)
+#     nx,nu = size(B)
+#     C = zeros(nx,nu*nx)
+#
+#     for i = 1:nx
+#         C[:,(i-1)*nu .+ (1:nu)] = A^(i-1)*B
+#     end
+#     if rank(C) != nx
+#         error("not controllable")
+#     end
+# end
+# nx = 5
+# nu = 3
+# A = randn(nx,nx)
+# B = randn(nx,nu)
+# ctrb(A,B)
+As = [zeros(3,3) I;
+       zeros(3,6)]
+Bs = [zeros(3,3);I]
+dt = 0.1
+exp_discrete = exp([As Bs; zeros(3,9)]*dt)
+A = exp_discrete[1:6,1:6]
+B = exp_discrete[1:6,7:9]
+nx,nu = size(B)
 
 Q = randn(nx,nx);Q = sparse(Q'*Q);
 Qf = 10*Q
@@ -64,11 +67,15 @@ function kkt_stuff(A,B,nx,nu,x0,N,Q,Qf,R)
 
     X = [z_sol[idx_x[i]] for i = 1:length(idx_x)]
     U = [z_sol[idx_u[i]] for i = 1:length(idx_u)]
+    λ = [z_sol[idx_cons[i] .+ (N*nx + (N-1)*nu)] for i = 1:length(idx_cons)]
 
-    return X, U
+    # @infiltrate
+    # error()
+
+    return X, U, λ
 end
 
-X_kkt, U_kkt = kkt_stuff(A,B,nx,nu,x0,N,Q,Qf,R)
+X_kkt, U_kkt, λ = kkt_stuff(A,B,nx,nu,x0,N,Q,Qf,R)
 
 
 dyn_errors_kkt = [norm( A*X_kkt[i] + B*U_kkt[i] - X_kkt[i+1]) for i = 1:length(X_kkt)-1]
@@ -116,14 +123,58 @@ function ilqr_stuff(Ak,Bk,Nx,Nu,x0,N,Q,Qf,R)
     xtraj[1] .= copy(x0)
 
     for i = 1:N-1
-        xtraj[i+1] = (A-B*K[i])*xtraj[i]
+        utraj[i] = -K[i]*xtraj[i]
+        # xtraj[i+1] = (A-B*K[i])*xtraj[i]
+        xtraj[i+1] = A*xtraj[i] + B*utraj[i]
     end
 
-    return xtraj
+    return xtraj, utraj
 
 end
 
 
-xtraj = ilqr_stuff(A,B,nx,nu,x0,N,Q,Qf,R)
+xtraj, utraj = ilqr_stuff(A,B,nx,nu,x0,N,Q,Qf,R)
 
 x_error = [norm(xtraj[i]-X_kkt[i]) for i = 1:length(xtraj)]
+u_error = [norm(utraj[i]-U_kkt[i]) for i = 1:length(utraj)]
+
+# verify optimiality conditions
+R*U_kkt[5] + B'*λ[5]
+
+
+test_λ = cfill(nx,N-1)
+test_λ[N-1] = Qf*xtraj[N]
+
+
+# kkk = N-2
+# kkk =5
+# Q*xtraj[kkk] + A'*λ[kkk+1] - λ[kkk]
+
+
+# @show norm(Q*xtraj[5] + A'*λ[6] - λ[5])
+# @show norm(Q*xtraj[5] + A'*λ[6] - λ[5])
+# @show norm(Q*xtraj[6] + A'*λ[6] - λ[5])
+#
+for i = N-2:-1:1
+    test_λ[i] = Q*xtraj[i+1] + A'*test_λ[i+1]
+end
+
+λ_error = [norm(λ[i] - test_λ[i]) for i = 1:length(λ)]
+mat"
+figure
+hold on
+plot($λ_error)
+hold off
+"
+mat"
+figure
+hold on
+plot($x_error)
+hold off
+"
+mat"
+figure
+hold on
+plot($u_error)
+hold off
+"
