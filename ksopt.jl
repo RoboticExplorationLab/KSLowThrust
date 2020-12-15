@@ -41,7 +41,6 @@ function RobotDynamics.dynamics(model::KSopt, x, u)
     return SVector(p_prime[1],p_prime[2],p_prime[3],p_prime[4],
                    p_dp[1],p_dp[2],p_dp[3],p_dp[4],
                    -2*dot(p_prime,L'*P_j2),
-                   dot(p,p),
                    2*p'*p_prime,
                    2*(p_prime[1]*p[3] + p[1]*p_prime[3] + p_prime[2]*p[4] + p[2]*p_prime[4]))
 
@@ -75,7 +74,7 @@ tscale = 20000 # s
 uscale = 10000.0
 μ = 3.986004418e14 *(tscale^2)/(dscale^3)
 model = KSopt(μ,tscale, dscale, uscale)
-Base.size(::KSopt) = 12,3
+Base.size(::KSopt) = 11,3
 n,m = size(model)
 
 # initial conditions
@@ -87,11 +86,11 @@ p_0 = u_from_x(R_0)                          # u
 p_prime_0 = uprime_from_xdot(V_0,p_0)     # du/ds
 h_0 = μ/norm(R_0) - .5*norm(V_0)^2         # m^2/s^2
 t_0 = 0                                    # seconds
-x0 = SVector{12}([p_0; p_prime_0; h_0; t_0; norm(R_0); R_0[3]])
+x0 = SVector{11}([p_0; p_prime_0; h_0; norm(R_0); R_0[3]])
 
 # time stuff
 N = 2001
-dt = 8e-2
+dt = 4e-2
 tf = dt*(N-1)
 
 # cost function
@@ -104,9 +103,9 @@ tf = dt*(N-1)
 scaling_num = 10
 r_Desired = 42e6/dscale#4.2#6.77814
 R_scale = .1
-Q = Diagonal(SVector{n}([1e-12*ones(10);scaling_num;1000]))
+Q = Diagonal(SVector{n}([1e-12*ones(9);scaling_num;1000]))
 R = Diagonal(SVector(R_scale,R_scale,R_scale))
-q = SVector{n}([zeros(10);-r_Desired*scaling_num;0])
+q = SVector{n}([zeros(9);-r_Desired*scaling_num;0])
 costfun = QuadraticCost(Q,R,q=q)
 costfun_term = QuadraticCost(Q,R,q=q)
 obj = Objective(costfun, costfun_term, N)
@@ -114,7 +113,7 @@ obj = Objective(costfun, costfun_term, N)
 
 # constraints
 cons = ConstraintList(n,m,N-1)
-u_bnd = 5
+u_bnd = 10
 maxThrust = NormConstraint(n, m, u_bnd, TO.SecondOrderCone(), :control)
 TO.add_constraint!(cons, maxThrust, 1:N-1)
 # add_constraint!(cons, BoundConstraint(n,m, u_min=-1000, u_max=1000), 1:N-1)
