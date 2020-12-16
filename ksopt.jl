@@ -166,11 +166,38 @@ hold off
 "
 
 
+U = controls(solver)
+Unorm = [norm(U[i]) for i = 1:length(U)]
+
+mat"
+figure
+hold on
+plot($Unorm)
+hold off
+"
 
 
+function get_time_transfer(solver,dt,tscale)
+    """get the time in days for a run. This allows us to remove t from state"""
+    X = states(solver)
+    t = 0.0
+    for i = 1:(length(X)-1)
 
+        p0 = X[i][1:4]
+        R0 = dot(p0,p0)
 
-# using TrajectoryOptimization
+        p1 = X[i+1][1:4]
+        R1 = dot(p1,p1)
+
+        t += (R0 + R1)*dt/2
+    end
+    t_days = t*tscale/(24*3600)
+    return t_days
+end
+
+t_days = get_time_transfer(solver,dt,tscale)
+
+println("Time in days:  $t_days")# using TrajectoryOptimization
 # using Altro
 # using RobotDynamics
 # using StaticArrays

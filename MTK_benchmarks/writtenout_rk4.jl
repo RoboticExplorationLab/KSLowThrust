@@ -65,7 +65,25 @@ function rk4step_jacobians(x1,u0,dt)
 
     x_tp1 = x1 + (1/6)*(k1 + 2*k2 + 2*k3 + k4)
 
-
+    # # RK4 method
+    # dk1_dx1 = dt*A1
+    # # dx2_dx1 = I + .5*dk1_dx1
+    # dk2_dx1 = dt*A2*(I + .5*dk1_dx1)
+    # # dx3_dx1 = I + .5*dk2_dx1
+    # dk3_dx1 = dt*A3*(I + .5*dk2_dx1)
+    # # dx4_dx1 = I + dk3_dx1
+    # dk4_dx1 = dt*A4*(I + dk3_dx1)
+    # A_d = I + (1/6)*(dk1_dx1 + 2*dk2_dx1 + 2*dk3_dx1 + dk4_dx1)
+    #
+    # # B_d
+    # dk1_du = dt*B1
+    # # dx2_du = .5*dk1_du
+    # dk2_du = dt*A2*(.5*dk1_du) + dt*B2
+    # # dx3_du = .5*dk2_du
+    # dk3_du = dt*A3*(.5*dk2_du) + dt*B3
+    # # dx4_du = dk3_du
+    # dk4_du = dt*A4*dk3_du + dt*B4
+    # B_d = (1/6)*(dk1_du + 2*dk2_du + 2*dk3_du + dk4_du)
     # RK4 method
     dk1_dx1 = dt*A1
     dx2_dx1 = I + .5*dk1_dx1
