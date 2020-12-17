@@ -162,22 +162,10 @@ end
 t_days,t_hist = get_time_transfer(solver,dt,tscale)
 
 X = states(solver)
-function mat_from_vec2(a)
-    "Turn a vector of vectors into a matrix"
+U = controls(solver)
 
-
-    rows = length(a[1])
-    columns = length(a)
-    A = zeros(rows,columns)
-
-    for i = 1:columns
-        A[:,i] = a[i]
-    end
-
-    return A
-end
-r_eci_hist = dscale*mat_from_vec2([x_from_u(X[i][1:4]) for i = 1:length(X)])
-v_eci_hist = (dscale/tscale)*mat_from_vec2([xdot_from_u(X[i][1:4],X[i][5:8]) for i = 1:length(X)])
+r_eci_hist = dscale*mat_from_vec([x_from_u(X[i][1:4]) for i = 1:length(X)])
+v_eci_hist = (dscale/tscale)*mat_from_vec([xdot_from_u(X[i][1:4],X[i][5:8]) for i = 1:length(X)])
 
 mat"
 figure
@@ -187,7 +175,7 @@ plot3($r_eci_hist(1,:),$r_eci_hist(2,:),$r_eci_hist(3,:))
 hold off
 "
 
-Xm = mat_from_vec2(X)
+Xm = mat_from_vec(X)
 U_real = Xm[12:14,:]
 
 mat"
@@ -200,12 +188,12 @@ xlabel('Time (days)')
 hold off
 xlim([0,$t_hist(end)])
 legend('u_x','u_y','u_z')
-saveas(gcf,'long_traj.png')
+%saveas(gcf,'long_traj.png')
 "
 
 
-U = [X[i][12:14] for i = 1:length(X)]
-Unorm = [norm(U[i]) for i = 1:length(U)]
+U_real_vec = [X[i][12:14] for i = 1:length(X)]
+Unorm = [norm(U_real_vec[i]) for i = 1:length(U)]
 
 mat"
 figure
@@ -242,9 +230,9 @@ plot($t_hist,$i_hist)
 hold off
 "
 
-using JLD2
-X = states(solver)
-U = controls(solver)
-@save "rate_control_transfers/30_v2_day_transfer.jld2" X U
+# using JLD2
+# X = states(solver)
+# U = controls(solver)
+# @save "rate_control_transfers/30_v3_day_transfer.jld2" X U t_hist
 #
 # U_old = controls(solver)
