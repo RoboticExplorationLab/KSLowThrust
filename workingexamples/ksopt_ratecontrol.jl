@@ -170,8 +170,14 @@ U_real = Xm[12:14,:]
 mat"
 figure
 hold on
-plot($U_real')
+title('Thrust Vector')
+plot($t_hist,$U_real')
+ylabel('Thrust Acceleration (0.0001m/s^2)')
+xlabel('Time (days)')
 hold off
+xlim([0,$t_hist(end)])
+legend('u_x','u_y','u_z')
+saveas(gcf,'long_traj.png')
 "
 
 
@@ -236,9 +242,9 @@ plot($t_hist,$i_hist)
 hold off
 "
 
-# using JLD2
-# X = states(solver)
-# U = controls(solver)
-# @save "rate_control_transfers/78_day_transfer.jld2" X U
+using JLD2
+X = states(solver)
+U = controls(solver)
+@save "rate_control_transfers/112_day_transfer.jld2" X U
 #
 # U_old = controls(solver)
