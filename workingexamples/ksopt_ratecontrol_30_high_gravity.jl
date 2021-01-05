@@ -138,7 +138,9 @@ opts = SolverOptions(verbose=2,
                      show_summary = true,
                      iterations = 20000,
                      projected_newton = false,
-                     constraint_tolerance = 1e-4, penalty_scaling = 2.0, penalty_initial = 1e2)
+                     constraint_tolerance = 1e-3,
+                     penalty_scaling = 2.0,
+                     penalty_initial = 5.0)
 solver = ALTROSolver(prob,opts)
 
 solve!(solver)
@@ -236,23 +238,8 @@ plot($t_hist,$i_hist)
 hold off
 "
 
-using JLD2
-X = states(solver)
-U = controls(solver)
-@save "rate_control_transfers/30_spherical_harmonic_day_transfer.jld2" X U t_hist
+# using JLD2
+# X = states(solver)
+# U = controls(solver)
+# @save "rate_control_transfers/30_spherical_harmonic_day_transfer.jld2" X U t_hist
 #
-# U_old = controls(solver)
-
-
-# rECItoECEF(epc0)
-#
-# Rz(iauEra00(MJD_ZERO,mjd(epc0)))
-#
-# mjd_current = mjd(epc0)
-# Rz(1.0047517553493037 + 6.300387486754831*mjd_current)
-# myRz(1.0047517553493037 + 6.300387486754831*mjd_current)
-# function myRz(θ)
-#     return [cos(θ) sin(θ) 0;
-#            -sin(θ) cos(θ) 0;
-#             0      0      1]
-# end
