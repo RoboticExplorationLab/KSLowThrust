@@ -236,10 +236,10 @@ plot($t_hist,$i_hist)
 hold off
 "
 
-# using JLD2
-# X = states(solver)
-# U = controls(solver)
-# @save "rate_control_transfers/30_spherical_harmonic_day_transfer.jld2" X U t_hist
+using JLD2
+X = states(solver)
+U = controls(solver)
+@save "rate_control_transfers/30_spherical_harmonic_day_transfer.jld2" X U t_hist
 #
 # U_old = controls(solver)
 
