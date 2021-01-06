@@ -13,6 +13,30 @@ t_days,t_hist = get_time_transfer(X,dt,tscale)
 r_eci_hist = dscale*mat_from_vec([x_from_u(X[i][1:4]) for i = 1:length(X)])
 v_eci_hist = (dscale/tscale)*mat_from_vec([xdot_from_u(X[i][1:4],X[i][5:8]) for i = 1:length(X)])
 
+function discretize_t(t_hist,n)
+    # new time vec
+    new_t = [0.0]
+    for i = 1:(length(t_hist)-1)
+
+        # time spacing betwen two knot points
+        δt = t_hist[i+1] - t_hist[i]
+
+        # add intermediate points between the knot points
+        for j = 1:n
+            push!(new_t,δt*j/n + t_hist[i])
+        end
+    end
+    return new_t
+end
+new_t = discretize_t(t_hist,4)
+mat"
+rnew = spline($t_hist,$r_eci_hist,$new_t);
+figure
+hold on
+plot3(rnew(1,:),rnew(2,:),rnew(3,:))
+axis equal
+hold off
+"
 # TODO: Spline this in a data efficient way
 mat"
 figure
@@ -90,3 +114,8 @@ xlabel('Time (days)')
 xlim([0,$t_hist(end)])
 hold off
 "
+
+thirty = (t_hist = t_hist, a_hist = a_hist, e_hist = e_hist, i_hist = i_hist)
+
+using JLD2
+@save "plotting_data_30.jld2" thirty

@@ -87,3 +87,8 @@ xlabel('Time (days)')
 xlim([0,$t_hist(end)])
 hold off
 "
+
+sixty = (t_hist = t_hist, a_hist = a_hist, e_hist = e_hist, i_hist = i_hist)
+
+using JLD2
+@save "plotting_data_60.jld2" sixty

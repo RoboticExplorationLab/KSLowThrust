@@ -92,3 +92,8 @@ xlabel('Time (days)')
 xlim([0,$t_hist(end)])
 hold off
 "
+
+hundred = (t_hist = t_hist, a_hist = a_hist, e_hist = e_hist, i_hist = i_hist)
+
+using JLD2
+@save "plotting_data_100.jld2" hundred
