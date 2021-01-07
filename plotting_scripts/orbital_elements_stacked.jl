@@ -42,7 +42,7 @@ hold off
 %addpath('matlab2tikz')
 addpath('/Users/kevintracy/devel/Low-Thrust-TrajOpt/matlab2tikz/src')
 disp('pre')
-matlab2tikz('mytest.tikz')
+%matlab2tikz('mytest.tikz')
 disp('post')
 "
 
@@ -88,3 +88,23 @@ disp('post')
 # set(hL,'position',[0 0 0.1 0.1])
 # saveas(gcf,'test.png')
 # "
+
+mat"
+close all
+close all hidden
+idx = 3
+st = 3
+figure
+hold on
+plot($thirty.t_hist(st:idx:end),.1*$thirty.Unorm(st:idx:end),'linewidth',1.5)
+plot($sixty.t_hist(st:idx:end),.1*$sixty.Unorm(st:idx:end),'linewidth',1.5)
+plot($hundred.t_hist(st:idx:end),.1*$hundred.Unorm(st:idx:end),'linewidth',1.5)
+legend('30-Day Transfer','60-Day Transfer','100-Day Transfer')
+xlabel('Time (days)')
+ylabel('Thrust (N)')
+addpath('/Users/kevintracy/devel/Low-Thrust-TrajOpt/matlab2tikz/src')
+disp('pre')
+matlab2tikz('unorm.tex')
+disp('post')
+hold off
+"

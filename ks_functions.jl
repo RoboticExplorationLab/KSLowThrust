@@ -247,3 +247,30 @@ function get_time_transfer(X,dt,tscale)
     t_hist = t_hist*tscale/(24*3600)
     return t_days, t_hist
 end
+function discretize_t(t_hist,n)
+    """Take the time history vec, and discretize it even further"""
+    # new time vec
+    new_t = [0.0]
+    for i = 1:(length(t_hist)-1)
+
+        # time spacing betwen two knot points
+        δt = t_hist[i+1] - t_hist[i]
+
+        # add intermediate points between the knot points
+        for j = 1:n
+            push!(new_t,δt*j/n + t_hist[i])
+        end
+    end
+    return new_t
+end
+function thrust_angle_from_rtn(u_rtn)
+    u_rtn = normalize(u_rtn)
+    α = atan(u_rtn[1],u_rtn[2])
+    β = atan(u_rtn[3],norm(u_rtn[1:2]))
+    return [α; β]
+end
+function get_rtn_in_out(U_real,r_eci_hist,v_eci_hist)
+
+    return [thrust_angle_from_rtn(
+                rECItoRTN([r_eci_hist[:,i];v_eci_hist[:,i]])*U_real[:,i] ) for i = 1:size(U_real,2)]
+end

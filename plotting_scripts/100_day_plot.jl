@@ -16,14 +16,89 @@ r_eci_hist = dscale*mat_from_vec([x_from_u(X[i][1:4]) for i = 1:length(X)])
 v_eci_hist = (dscale/tscale)*mat_from_vec([xdot_from_u(X[i][1:4],X[i][5:8]) for i = 1:length(X)])
 
 # TODO: Spline this in a data efficient way
+new_t = discretize_t(t_hist,3)
 mat"
+rnew = spline($t_hist,$r_eci_hist,$new_t);
 figure
 hold on
-plot3($r_eci_hist(1,:),$r_eci_hist(2,:),$r_eci_hist(3,:))
+plot3(rnew(1,:),rnew(2,:),rnew(3,:))
 axis equal
 hold off
 "
 
+mat"
+close all
+close all hidden
+rnew = spline($t_hist,$r_eci_hist,$new_t)/1000;
+rnew = round(rnew,4,'significant');
+figure
+hold on
+plot(rnew(1,:),rnew(2,:))
+xlabel('ECI X (km)')
+ylabel('ECI Y (km)')
+axis equal
+hold off
+addpath('/Users/kevintracy/devel/Low-Thrust-TrajOpt/matlab2tikz/src')
+%matlab2tikz('topview.txt')
+"
+
+mat"
+close all
+close all hidden
+rnew = spline($t_hist,$r_eci_hist,$new_t)/1000;
+rnew = round(rnew,4,'significant');
+figure
+hold on
+plot(rnew(1,:),rnew(3,:))
+xlabel('ECI X (km)')
+ylabel('ECI Y (km)')
+axis equal
+hold off
+%addpath('/Users/kevintracy/devel/Low-Thrust-TrajOpt/matlab2tikz/src')
+%matlab2tikz('sideview.txt')
+"
+
+# mat"
+# close all
+# close all hidden
+# [X,Y,Z] = sphere(20)
+# Re = 6010
+# rnew = spline($t_hist,$r_eci_hist,$new_t)/1000;
+# rnew = round(rnew,4,'significant');
+# figure
+# hold on
+# plot3(rnew(1,:),rnew(2,:),rnew(3,:),'k')
+# h = surf(Re*X,Re*Y,Re*Z)
+# axis equal
+# view(-69,14)
+# hold off
+# h.EdgeAlpha = 0
+# h.FaceColor = 'blue'
+# %get(h)
+# addpath('/Users/kevintracy/devel/Low-Thrust-TrajOpt/matlab2tikz/src')
+# %matlab2tikz('globe.txt')
+# "
+# mat"
+# close all
+# close all hidden
+# [X,Y,Z] = sphere(20)
+# Re = 6010
+# rnew = spline($t_hist,$r_eci_hist,$new_t)/1000;
+# rnew = round(rnew,4,'significant');
+# figure
+# hold on
+# %plot3(rnew(1,:),rnew(2,:),rnew(3,:),'k')
+# plot(rnew(2,:),rnew(3,:),'k')
+# %h = surf(Re*X,Re*Y,Re*Z)
+# axis equal
+# hold off
+# xlabel('ECI X (km)')
+# ylabel('ECI Y (km)')
+# zlabel('ECI Z (km)')
+# %get(h)
+# addpath('/Users/kevintracy/devel/Low-Thrust-TrajOpt/matlab2tikz/src')
+# %matlab2tikz('globe.txt')
+# "
 Xm = mat_from_vec(X)
 U_real = Xm[12:14,:]
 
@@ -31,13 +106,95 @@ mat"
 figure
 hold on
 title('Thrust Vector')
-plot($t_hist,$U_real')
-ylabel('Thrust Acceleration (0.0001m/s^2)')
+plot($t_hist,$U_real*10')
+ylabel('Thrust Magnitude')
 xlabel('Time (days)')
+legend('u_x','u_y','u_z','Location','SouthWest')
 hold off
 xlim([0,$t_hist(end)])
-legend('u_x','u_y','u_z')
+a2 = axes()
+a2.Position = [0.6500 0.750 0.2 0.15]; % xlocation, ylocation, xsize, ysize
+plot(a2,$t_hist(1:50),10*$U_real(:,1:50)'); axis tight
+
 %saveas(gcf,'long_traj.png')
+"
+
+mat"
+figure
+hold on
+subplot(2,2,1:2)
+plot($t_hist,$U_real*0.1')
+ylabel('Thrust Magnitude (N)')
+xlabel('Time (days)')
+legend('u_x','u_y','u_z','Location','NorthEast')
+hold off
+xlim([0,$t_hist(end)])
+
+subplot(2,2,3)
+plot($t_hist(1:50),$U_real(:,1:50)*0.1','linewidth',1.2)
+ylabel('Thrust Magnitude (N)')
+xlabel('Time (days)')
+
+subplot(2,2,4)
+plot($t_hist(2000:2050),$U_real(:,2000:2050)*0.1','linewidth',1.2)
+xlim([$t_hist(2000),$t_hist(2050)])
+ylabel('Thrust Magnitude (N)')
+xlabel('Time (days)')
+%saveas(gcf,'long_traj.png')
+addpath('/Users/kevintracy/devel/Low-Thrust-TrajOpt/matlab2tikz/src')
+matlab2tikz('thrust_100.txt')
+"
+
+# get this in RTN
+
+# function thrust_angle_from_rtn(u_rtn)
+#     u_rtn = normalize(u_rtn)
+#     α = atan(u_rtn[1],u_rtn[2])
+#     β = atan(u_rtn[3],norm(u_rtn[1:2]))
+#     return [α; β]
+# end
+# function get_rtn_in_out(U_real,r_eci_hist,v_eci_hist)
+#
+#     return [thrust_angle_from_rtn(
+#                 rECItoRTN([r_eci_hist[:,i];v_eci_hist[:,i]])*U_real[:,i] ) for i = 1:size(U_real,2)]
+# end
+
+angle_hist = get_rtn_in_out(U_real,r_eci_hist,v_eci_hist)
+
+angles = mat_from_vec(angle_hist)
+
+mat"
+figure
+hold on
+plot($t_hist,rad2deg($angles'))
+legend('In Plane','Out of Plane')
+hold off
+"
+mat"
+angles = rad2deg($angles')
+figure
+hold on
+subplot(2,2,1:2)
+plot($t_hist,angles)
+ylabel('Thrust Angle (deg)')
+xlabel('Time (days)')
+legend('In Plane','Out of Plane')
+hold off
+xlim([0,$t_hist(end)])
+
+subplot(2,2,3)
+plot($t_hist(1:50),$U_real(:,1:50)*0.1','linewidth',1.2)
+ylabel('Thrust Magnitude (N)')
+xlabel('Time (days)')
+
+subplot(2,2,4)
+plot($t_hist(2000:2050),$U_real(:,2000:2050)*0.1','linewidth',1.2)
+xlim([$t_hist(2000),$t_hist(2050)])
+ylabel('Thrust Magnitude (N)')
+xlabel('Time (days)')
+%saveas(gcf,'long_traj.png')
+addpath('/Users/kevintracy/devel/Low-Thrust-TrajOpt/matlab2tikz/src')
+matlab2tikz('thrust_100.txt')
 "
 
 
@@ -93,7 +250,7 @@ xlim([0,$t_hist(end)])
 hold off
 "
 
-hundred = (t_hist = t_hist, a_hist = a_hist, e_hist = e_hist, i_hist = i_hist)
+hundred = (t_hist = t_hist, a_hist = a_hist, e_hist = e_hist, i_hist = i_hist, Unorm = Unorm)
 
-using JLD2
-@save "plotting_data_100.jld2" hundred
+# using JLD2
+# @save "plotting_data_100.jld2" hundred
