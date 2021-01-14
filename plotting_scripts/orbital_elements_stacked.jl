@@ -104,7 +104,46 @@ xlabel('Time (days)')
 ylabel('Thrust (N)')
 addpath('/Users/kevintracy/devel/Low-Thrust-TrajOpt/matlab2tikz/src')
 disp('pre')
-matlab2tikz('unorm.tex')
+%matlab2tikz('unorm.tex')
 disp('post')
 hold off
+"
+
+
+# plot the thrust angles for all trajectories
+
+mat"
+figure
+hold on
+
+subplot(3,1,1)
+plot($thirty.t_hist,rad2deg($thirty.angles'))
+xlabel('Time (days)')
+ylabel('Thrust Angle (deg)')
+legend('In-Plane','Out-of-Plane','Location','SouthWest')
+ylim([-180 180])
+yticks([-180 0 180])
+xlim([0 $thirty.t_hist(end)])
+hold off
+
+subplot(3,1,2)
+plot($sixty.t_hist,rad2deg($sixty.angles'))
+xlabel('Time (days)')
+ylabel('Thrust Angle (deg)')
+legend('In-Plane','Out-of-Plane','Location','SouthWest')
+ylim([-180 180])
+yticks([-180 0 180])
+xlim([0 $sixty.t_hist(end)])
+hold off
+
+subplot(3,1,3)
+plot($hundred.t_hist,rad2deg($hundred.angles'))
+xlabel('Time (days)')
+ylabel('Thrust Angle (deg)')
+legend('In-Plane','Out-of-Plane','Location','SouthWest')
+ylim([-180 180])
+yticks([-180 0 180])
+xlim([0 $hundred.t_hist(end)])
+hold off
+
 "

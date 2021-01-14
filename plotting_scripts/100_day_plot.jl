@@ -16,7 +16,10 @@ r_eci_hist = dscale*mat_from_vec([x_from_u(X[i][1:4]) for i = 1:length(X)])
 v_eci_hist = (dscale/tscale)*mat_from_vec([xdot_from_u(X[i][1:4],X[i][5:8]) for i = 1:length(X)])
 
 # TODO: Spline this in a data efficient way
-new_t = discretize_t(t_hist,3)
+new_t = discretize_t(t_hist,4)
+mat"
+$rnew = spline($t_hist,$r_eci_hist,$new_t)/1000;
+"
 mat"
 rnew = spline($t_hist,$r_eci_hist,$new_t);
 figure
@@ -142,7 +145,7 @@ ylabel('Thrust Magnitude (N)')
 xlabel('Time (days)')
 %saveas(gcf,'long_traj.png')
 addpath('/Users/kevintracy/devel/Low-Thrust-TrajOpt/matlab2tikz/src')
-matlab2tikz('thrust_100.txt')
+%matlab2tikz('thrust_100.txt')
 "
 
 # get this in RTN
@@ -160,7 +163,6 @@ matlab2tikz('thrust_100.txt')
 # end
 
 angle_hist = get_rtn_in_out(U_real,r_eci_hist,v_eci_hist)
-
 angles = mat_from_vec(angle_hist)
 
 mat"
@@ -171,30 +173,30 @@ legend('In Plane','Out of Plane')
 hold off
 "
 mat"
-angles = rad2deg($angles')
+angles = rad2deg($angles)
 figure
 hold on
 subplot(2,2,1:2)
-plot($t_hist,angles)
+plot($t_hist,angles')
 ylabel('Thrust Angle (deg)')
 xlabel('Time (days)')
-legend('In Plane','Out of Plane')
+legend('In Plane','Out of Plane','Location','SouthWest')
 hold off
 xlim([0,$t_hist(end)])
 
 subplot(2,2,3)
-plot($t_hist(1:50),$U_real(:,1:50)*0.1','linewidth',1.2)
+plot($t_hist(1:50),angles(:,1:50)','linewidth',1.2)
 ylabel('Thrust Magnitude (N)')
 xlabel('Time (days)')
 
 subplot(2,2,4)
-plot($t_hist(2000:2050),$U_real(:,2000:2050)*0.1','linewidth',1.2)
+plot($t_hist(2000:2050),angles(:,2000:2050)','linewidth',1.2)
 xlim([$t_hist(2000),$t_hist(2050)])
 ylabel('Thrust Magnitude (N)')
 xlabel('Time (days)')
 %saveas(gcf,'long_traj.png')
 addpath('/Users/kevintracy/devel/Low-Thrust-TrajOpt/matlab2tikz/src')
-matlab2tikz('thrust_100.txt')
+%matlab2tikz('thrust_100_angles.txt')
 "
 
 
@@ -250,7 +252,13 @@ xlim([0,$t_hist(end)])
 hold off
 "
 
-hundred = (t_hist = t_hist, a_hist = a_hist, e_hist = e_hist, i_hist = i_hist, Unorm = Unorm)
+# matlab animation stuff
+output_to_matlab = (new_time_vec = new_t, x_hist_t_correct = rnew)
+file = matopen("matlab_video_data_100.mat", "w")
+write(file, "output_to_matlab", output_to_matlab)
+close(file)
 
+# hundred = (t_hist = t_hist, a_hist = a_hist, e_hist = e_hist, i_hist = i_hist, Unorm = Unorm,angles = angles)
+#
 # using JLD2
 # @save "plotting_data_100.jld2" hundred

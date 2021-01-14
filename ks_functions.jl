@@ -270,7 +270,7 @@ function thrust_angle_from_rtn(u_rtn)
     return [α; β]
 end
 function get_rtn_in_out(U_real,r_eci_hist,v_eci_hist)
-
-    return [thrust_angle_from_rtn(
-                rECItoRTN([r_eci_hist[:,i];v_eci_hist[:,i]])*U_real[:,i] ) for i = 1:size(U_real,2)]
+    """Get rtn thrust angles from eci thrust vector"""
+    return [thrust_angle_from_rtn(rECItoRTN(
+    [r_eci_hist[:,i];v_eci_hist[:,i]])*U_real[:,i] ) for i = 1:size(U_real,2)]
 end

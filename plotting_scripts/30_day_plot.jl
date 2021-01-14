@@ -30,12 +30,30 @@ v_eci_hist = (dscale/tscale)*mat_from_vec([xdot_from_u(X[i][1:4],X[i][5:8]) for 
 # end
 new_t = discretize_t(t_hist,4)
 mat"
-rnew = spline($t_hist,$r_eci_hist,$new_t);
+$rnew = spline($t_hist,$r_eci_hist,$new_t)/1000;
+"
+mat"
+rnew = spline($t_hist,$r_eci_hist,$new_t)/1000;
+rnew = round(rnew,3,'Significant')
 figure
 hold on
-plot3(rnew(1,:),rnew(2,:),rnew(3,:))
+plot3(rnew(1,:),rnew(2,:),rnew(3,:),'k')
+[X,Y,Z] = sphere(10)
+X = round(X,3,'Significant')
+Y = round(Y,3,'Significant')
+Z = round(Z,3,'Significant')
+Re = 6010
+h = surf(Re*X,Re*Y,Re*Z)
+axis equal
+view(-69,14)
+hold off
+h.EdgeAlpha = 0
+h.FaceColor = 'blue'
+view([58 2])
 %axis equal
 hold off
+addpath('/Users/kevintracy/devel/Low-Thrust-TrajOpt/matlab2tikz/src')
+%matlab2tikz('full_30_traj.tex')
 "
 # TODO: Spline this in a data efficient way
 mat"
@@ -45,6 +63,69 @@ plot3($r_eci_hist(1,:),$r_eci_hist(2,:),$r_eci_hist(3,:))
 axis equal
 hold off
 "
+
+
+# ANIMATION STUFF
+# output_to_matlab = (new_time_vec = new_t, x_hist_t_correct = rnew)
+# file = matopen("matlab_video_data.mat", "w")
+# write(file, "output_to_matlab", output_to_matlab)
+# close(file)
+# mat"""
+# [x,y,z] = sphere(20);
+# new_time_vec = $new_t;
+# x_hist_t_correct = $rnew;
+# a_el_1 = [0 90];
+# a_el_2 = [-90 0];
+#
+#
+# f1 = figure('units','normalized','outerposition',[0 0 1 1]);
+#
+# iter = 0;
+#
+# len = length(1:200:length(x_hist_t_correct));
+#
+# %v = VideoWriter('newfile.avi');
+# %open(v);
+#
+# [x,y,z] = sphere(20);
+#
+# $for i = 1:200:length(x_hist_t_correct)
+# for i = 1:5
+#     i
+#     iter = iter+1;
+#     figure(f1)
+#     %title('delta T' = ',num2str(floor(new_time_vec(i))),' Days'])
+#     hold on
+#     cla
+#     hold on
+#
+#     plot3(x_hist_t_correct(1,1:i),x_hist_t_correct(2,1:i),x_hist_t_correct(3,1:i))
+#     surf(6378*x,6378*y,6378*z,'FaceColor','blue','EdgeColor', 'black')
+#     plot3(x_hist_t_correct(1,i),x_hist_t_correct(2,i),x_hist_t_correct(3,i),'o')
+#     axis equal
+#     axis(dscale*[-6.5 4.5 -4.5 4.5 -1.8 1.8])
+#     %view((i/500),10)
+#     view(-60,5)
+#     title('GTO-GEO Trajectory Optimization')
+#     xlabel('ECI I (m)')
+#     ylabel('ECI J (m)')
+#     zlabel('ECI K (m)')
+#     %view(0 - 90*i/(50*len),90 - 90*i/(50*len))
+#
+#     drawnow
+#      %frame= getframe(gcf);
+#      %writeVideo(v,frame)
+#
+#
+#
+# end
+#
+# %close(v);
+#
+# """
+
+
+
 
 Xm = mat_from_vec(X)
 U_real = Xm[12:14,:]
@@ -158,7 +239,11 @@ xlim([0,$t_hist(end)])
 hold off
 "
 
-thirty = (t_hist = t_hist, a_hist = a_hist, e_hist = e_hist, i_hist = i_hist, Unorm = Unorm)
+angle_hist = get_rtn_in_out(U_real,r_eci_hist,v_eci_hist)
+angles = mat_from_vec(angle_hist)
+
+
+thirty = (t_hist = t_hist, a_hist = a_hist, e_hist = e_hist, i_hist = i_hist, Unorm = Unorm,angles = angles)
 
 using JLD2
 @save "plotting_data_30.jld2" thirty

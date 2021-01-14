@@ -10,8 +10,8 @@
 \begin{tikzpicture}
 
 \begin{axis}[%
-width=4in,
-height=1.4in,
+width=6.028in,
+height=1.99in,
 at={(1.011in,3.406in)},
 scale only axis,
 unbounded coords=jump,
@@ -24,7 +24,7 @@ ymax=200,
 ylabel style={font=\color{white!15!black}},
 ylabel={Thrust Angle (deg)},
 axis background/.style={fill=white},
-legend style={legend cell align=left, align=left, draw=white!15!black}
+legend style={at={(0.03,0.03)}, anchor=south west, legend cell align=left, align=left, draw=white!15!black}
 ]
 \addplot [color=mycolor1]
   table[row sep=crcr]{%
@@ -7041,9 +7041,9 @@ legend style={legend cell align=left, align=left, draw=white!15!black}
 \end{axis}
 
 \begin{axis}[%
-width=1.60in,
-height=1.4in,
-at={(1.011in,1.3in)},
+width=2.603in,
+height=1.99in,
+at={(1.011in,0.642in)},
 scale only axis,
 unbounded coords=jump,
 xmin=0,
@@ -7110,7 +7110,7 @@ legend style={legend cell align=left, align=left, draw=white!15!black}
 1.0661103300233	6.03881885599955\\
 1.10449716018639	-14.4479365056349\\
 };
-
+\addlegendentry{data1}
 
 \addplot [color=mycolor2, line width=1.2pt]
   table[row sep=crcr]{%
@@ -7165,13 +7165,14 @@ legend style={legend cell align=left, align=left, draw=white!15!black}
 1.0661103300233	75.9467057876802\\
 1.10449716018639	75.192486648619\\
 };
+\addlegendentry{data2}
 
 \end{axis}
 
 \begin{axis}[%
-width=1.6in,
-height=1.4in,
-at={(3.4in,1.3in)},
+width=2.603in,
+height=1.99in,
+at={(4.436in,0.642in)},
 scale only axis,
 xmin=56.514094616586,
 xmax=58.2715703947869,
@@ -7238,6 +7239,7 @@ legend style={legend cell align=left, align=left, draw=white!15!black}
 58.2375496564444	25.9292080409094\\
 58.2715703947869	39.3750261338435\\
 };
+\addlegendentry{data1}
 
 \addplot [color=mycolor2, line width=1.2pt]
   table[row sep=crcr]{%
@@ -7293,7 +7295,7 @@ legend style={legend cell align=left, align=left, draw=white!15!black}
 58.2375496564444	14.9213580597366\\
 58.2715703947869	10.2973564674472\\
 };
-
+\addlegendentry{data2}
 
 \end{axis}
 \end{tikzpicture}%
