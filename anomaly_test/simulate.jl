@@ -1,6 +1,6 @@
 using SatelliteDynamics, MATLAB, StaticArrays, Attitude
-
-# const DE = OrdinaryDiffEq
+using OrdinaryDiffEq
+const DE = OrdinaryDiffEq
 
 # let's try the 2d case
 
@@ -41,13 +41,14 @@ up0 = uprime_from_xdot(rv_eci[4:6],u0)
 
 h0 = GM_EARTH/(norm(rv_eci[1:3])) - norm(rv_eci[4:6])^2/2
 
+A = Array([zeros(4,4) I(4);(-h/2)*I(2) zeros(2,2)])
 # function ksdyn(state,p,t)
 #     u  = SA[state[1],state[2],state[3],state[4]]
 #     up = SA[state[5],state[6],state[7],state[8]]
 #     upp = -(h0/2)*u
 #     return SA[state[5],state[6],state[7],state[8],upp[1],upp[2],upp[3],upp[4]]
 # end
-
+#
 # state0 = SVector{8}([u0;up0])
 # tspan = (0.0,18.65e-4)
 # prob = ODEProblem(ksdyn,state0,tspan)
@@ -172,9 +173,9 @@ A = Array([zeros(2,2) I(2);(-h/2)*I(2) zeros(2,2)])
 # statee = cfill(2,100)
 # statee[1] = [imag_to_vec(u);imag_to_vec(up)]
 
-ds = 1e-8
+ds = 1e-5
 
-statee = [ exp(A*((i-1)*ds))*[imag_to_vec(u);imag_to_vec(up)] for i = 1:100]
+statee = [ exp(A*((i-1)*ds))*[imag_to_vec(u);imag_to_vec(up)] for i = 1:1000]
 
 xhist = [imag_to_vec( x_from_u2((vec_to_imag(statee[i][1:2])))) for i = 1:length(statee)]
 
@@ -190,6 +191,8 @@ s = mat_from_vec(statee)
 mat"
 figure
 hold on
-plot($s')
+plot($s(1:2,:)','linewidth',10)
+xlim([-100 1100])
+ylim([-10000 10000])
 hold off
 "
