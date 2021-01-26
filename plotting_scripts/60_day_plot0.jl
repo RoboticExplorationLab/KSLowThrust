@@ -94,4 +94,4 @@ angles = mat_from_vec(angle_hist)
 sixty = (t_hist = t_hist, a_hist = a_hist, e_hist = e_hist, i_hist = i_hist, Unorm = Unorm,angles = angles)
 
 using JLD2
-@save "plotting_data_60.jld2" sixty
+@save "plotting_data/plotting_data_60.jld2" sixty

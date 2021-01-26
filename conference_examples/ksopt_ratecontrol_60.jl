@@ -3,6 +3,7 @@ using Altro
 using RobotDynamics
 using StaticArrays
 using LinearAlgebra
+using MATLAB
 const TO = TrajectoryOptimization
 const RD = RobotDynamics
 

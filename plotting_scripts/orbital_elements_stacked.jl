@@ -1,9 +1,9 @@
 
 
 using JLD2
-@load "plotting_data_30.jld2" thirty
-@load "plotting_data_60.jld2" sixty
-@load "plotting_data_100.jld2" hundred
+@load "plotting_data/plotting_data_30.jld2" thirty
+@load "plotting_data/plotting_data_60.jld2" sixty
+@load "plotting_data/plotting_data_100.jld2" hundred
 
 mat"
 idx = 5

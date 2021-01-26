@@ -21,12 +21,47 @@ mat"
 $rnew = spline($t_hist,$r_eci_hist,$new_t)/1000;
 "
 mat"
-rnew = spline($t_hist,$r_eci_hist,$new_t);
-figure
+rnew = spline($t_hist,$r_eci_hist,$new_t)/1000;
+figure('Renderer', 'painters', 'Position', [10 10 1300 300])
 hold on
-plot3(rnew(1,:),rnew(2,:),rnew(3,:))
+[x,y,z] = sphere(40);
+imgRGB = imread('/Users/kevintracy/devel/Low-Thrust-TrajOpt/matlab_video/earth.jpg');
+warp(6378*x,6378*y,6378*z,rot90(imgRGB,2))
+plot3(rnew(1,:),rnew(2,:),rnew(3,:),'linewidth',0.4)
+xlabel('ECI X (km)','Interpreter','Latex')
+ylabel('ECI Y (km)','Interpreter','Latex')
+zlabel('ECI Z (km)','Interpreter','Latex')
+set(gca,'TickLabelInterpreter','latex')
+set(gca,'Fontsize',28)
+%grid on
 axis equal
 hold off
+view(100,5)
+saveas(gcf,'test.eps','epsc')
+saveas(gcf,'test.png')
+"
+
+
+# top view
+mat"
+rnew = spline($t_hist,$r_eci_hist,$new_t)/1000;
+figure('Renderer', 'painters', 'Position', [10 10 900 900])
+hold on
+[x,y,z] = sphere(40);
+imgRGB = imread('/Users/kevintracy/devel/Low-Thrust-TrajOpt/matlab_video/earth.jpg');
+warp(6378*x,6378*y,6378*z,rot90(imgRGB,2))
+plot3(rnew(1,:),rnew(2,:),rnew(3,:),'linewidth',1.0)
+xlabel('ECI X (km)','Interpreter','Latex')
+ylabel('ECI Y (km)','Interpreter','Latex')
+zlabel('ECI Z (km)','Interpreter','Latex')
+set(gca,'TickLabelInterpreter','latex')
+set(gca,'Fontsize',28)
+%grid on
+axis equal
+hold off
+view(0,90)
+saveas(gcf,'topview.eps','epsc')
+saveas(gcf,'topview.png')
 "
 
 mat"
@@ -258,7 +293,7 @@ file = matopen("matlab_video_data_100.mat", "w")
 write(file, "output_to_matlab", output_to_matlab)
 close(file)
 
-# hundred = (t_hist = t_hist, a_hist = a_hist, e_hist = e_hist, i_hist = i_hist, Unorm = Unorm,angles = angles)
-#
-# using JLD2
-# @save "plotting_data_100.jld2" hundred
+hundred = (t_hist = t_hist, a_hist = a_hist, e_hist = e_hist, i_hist = i_hist, Unorm = Unorm,angles = angles)
+
+using JLD2
+@save "plotting_data/plotting_data_100.jld2" hundred
