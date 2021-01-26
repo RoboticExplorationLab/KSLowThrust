@@ -4,8 +4,6 @@ using MATLAB
 
 function initial_conditions()
 
-    # epc0 = Epoch(2019, 1, 1, 12, 0, 0, 0.0)
-
     # Declare initial state in terms of osculating orbital elements
     rp = R_EARTH + 200e3;ra = R_EARTH + 35000e3
     a = (ra+rp)/2
@@ -351,54 +349,6 @@ function driver()
     matlab2tikz('energy_test3.tikz')
     hold off
     "
-    # using JLD2
-    # output_tup = (t_vec = t_vec, ks_t_vec = ks_t_vec, eoe_a, eci_a, ks_a)
-    # @save "energy_data.jld2" output_tup
-    # X_eoe_eci = [rv_from_eoe(X_eoe[i]) for i = 1:length(X_eoe)]
-    # X_ks_eci = [rv_from_ks(X_ks[i][1:4],X_ks[i][5:8]) for i = 1:length(X_ks)]
-    #
-    # eoe_m = mat_from_vec(X_eoe_eci)
-    # eci_m = mat_from_vec(X_eci)
-    # ks_m = mat_from_vec(X_ks_eci)
-    #
-    # # SMA from all
-    # eoe_a= [sma_from_eci(X_eoe_eci[i]) for i = 1:length(X_eoe_eci)]
-    # eci_a = [sma_from_eci(X_eci[i]) for i = 1:length(X_eci)]
-    # ks_a = [sma_from_eci(X_ks_eci[i]) for i = 1:length(X_ks_eci)]
-    #
-    # # energies
-    # ks_ϵ = ϵ(X_ks_eci[end])
-    # eci_ϵ = ϵ(X_eci[end])
-    # eoe_ϵ = ϵ(X_eoe_eci[end])
-    #
-    # @show ks_ϵ
-    # @show eci_ϵ
-    # @show eoe_ϵ
-    #
-    #
-    # mat"
-    # figure
-    # hold on
-    # plot3($eci_m(1,:),$eci_m(2,:),$eci_m(3,:))
-    # plot3($ks_m(1,:),$ks_m(2,:),$ks_m(3,:))
-    # hold off
-    # "
-    #
-    #
-    # # # @show "yes"
-    # # eci_m = mat_from_vec(X_eci)
-    # # eoe_m = mat_from_vec(X_eoe_eci)
-    # # mat"
-    # # figure
-    # # hold on
-    # # plot3($eci_m(1,:),$eci_m(2,:),$eci_m(3,:))
-    # # plot3($eoe_m(1,:),$eoe_m(2,:),$eoe_m(3,:))
-    # # hold off
-    # # "
-    # #
-    # #
-    # # @show norm(X_eci[end] - X_eoe_eci[end])
-    # # @show norm(X_eci[end] - X_ks_eci[end])
 end
 
 driver()
