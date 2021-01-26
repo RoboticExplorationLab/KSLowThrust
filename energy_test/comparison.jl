@@ -1,10 +1,8 @@
 using LinearAlgebra, StaticArrays, Attitude, SatelliteDynamics
 using Infiltrator, ProgressMeter
-
+using MATLAB
 
 function initial_conditions()
-
-    # epc0 = Epoch(2019, 1, 1, 12, 0, 0, 0.0)
 
     # Declare initial state in terms of osculating orbital elements
     rp = R_EARTH + 200e3;ra = R_EARTH + 35000e3
@@ -14,7 +12,7 @@ function initial_conditions()
     # i = 0
     ω = deg2rad(34)
     Ω = deg2rad(133)
-    M = deg2rad(0)
+    M = deg2rad(180)
     oe0  = [a,e,i,Ω,ω,M]
 
     # Convert osculating elements to Cartesean state
@@ -245,86 +243,51 @@ function ϵ(rv)
     v = SA[rv[4],rv[5],rv[6]]
     return dot(v,v)/2 - GM_EARTH/norm(r)
 end
-# function driver()
-#     eci0, eoe0, ks0 = initial_conditions()
-#
-#     tf = 1*24*3600
-#     N = 100000
-#     dt = tf/N
-#
-#     X_eci = [@SVector zeros(6) for i = 1:N]
-#     X_eci[1] = SVector{6}(eci0)
-#     X_eoe = [@SVector zeros(6) for i = 1:N]
-#     X_eoe[1] = eoe0
-#     X_ks = [@SVector zeros(10) for i = 1:N]
-#     X_ks[1] = ks0
-#
-#     # one day in fictitious time (this was guess and check)
-#     sf = 0.003709551289
-#     ds = sf/N
-#
-#     @inbounds for i = 1:(N-1)
-#         X_eci[i+1] = rk4(cartesian_dynamics,X_eci[i],dt)
-#         X_eoe[i+1] = rk4(eoe_dynamics,X_eoe[i],dt)
-#         X_ks[i+1] = rk4(ks_dynamics,X_ks[i],ds)
-#     end
-#
-#     ksm = mat_from_vec(X_ks)
-#
-#     ps = ksm[1:4,:]
-#
-#     # mat"
-#     # figure
-#     # hold on
-#     # plot($ps')
-#     # hold off
-#     # "
-#
-#     # @show tf - X_ks[end][10]
-#     X_eoe_eci = [rv_from_eoe(X_eoe[i]) for i = 1:length(X_eoe)]
-#     X_ks_eci = [rv_from_ks(X_ks[i][1:4],X_ks[i][5:8]) for i = 1:length(X_ks)]
-#
-#     eci_m = mat_from_vec(X_eci)
-#     ks_m = mat_from_vec(X_ks_eci)
-#
-#     # energies
-#     ks_ϵ = ϵ(X_ks_eci[end])
-#     eci_ϵ = ϵ(X_eci[end])
-#     eoe_ϵ = ϵ(X_eoe_eci[end])
-#
-#     @show ks_ϵ
-#     @show eci_ϵ
-#     @show eoe_ϵ
-#
-#
-#     # mat"
-#     # figure
-#     # hold on
-#     # plot3($eci_m(1,:),$eci_m(2,:),$eci_m(3,:))
-#     # plot3($ks_m(1,:),$ks_m(2,:),$ks_m(3,:))
-#     # hold off
-#     # "
-#
-#
-#     # # @show "yes"
-#     # eci_m = mat_from_vec(X_eci)
-#     # eoe_m = mat_from_vec(X_eoe_eci)
-#     # mat"
-#     # figure
-#     # hold on
-#     # plot3($eci_m(1,:),$eci_m(2,:),$eci_m(3,:))
-#     # plot3($eoe_m(1,:),$eoe_m(2,:),$eoe_m(3,:))
-#     # hold off
-#     # "
-#     #
-#     #
-#     # @show norm(X_eci[end] - X_eoe_eci[end])
-#     # @show norm(X_eci[end] - X_ks_eci[end])
-# end
-function driver(N,eci0, eoe0, ks0 )
-    # eci0, eoe0, ks0 = initial_conditions()
+function P2(x)
+    return .5*(3*x^2 -1)
+end
+function true_anom_from_rv(r,v)
+    h = cross(r,v)
+    e = (v × h)/GM_EARTH - r/norm(r)
 
-    # N = 100
+    ν = acos(dot(e,r)/(norm(e)*norm(r)))
+    if dot(r,v)<0
+        ν = 2*pi - ν
+    end
+    return ν
+end
+function sma_from_eci(rv)
+    rv = convert(Array{Float64},rv)
+
+    try
+        r = rv[1:3]
+        v = rv[4:6]
+        oe = sCARTtoOSC(rv,use_degrees = false)
+        a,e,i,Ω,ω,M = oe
+        θ = true_anom_from_rv(r,v)
+        cosϕ = sin(i)*sin(θ + ω)
+        U_j2 = - (GM_EARTH/norm(r))*J2_EARTH*(R_EARTH/norm(r))^2*P2(cosϕ)
+        ϵ = dot(v,v)/2 - GM_EARTH/norm(r) - U_j2
+        # return oe[1]
+        return ϵ
+    catch err
+        return NaN
+    end
+
+    return oe[1]
+end
+function driver()
+    eci0, eoe0, ks0 = initial_conditions()
+
+    num_orbits = 6
+    tf = num_orbits*36951.67397573928
+    # N = 1000
+    N = 600
+    # N = Int(round((tf/(24*3600))*80))
+    @show N
+    dt = tf/N
+
+    t_vec = [(i-1)*dt for i = 1:N]
 
     X_eci = [@SVector zeros(6) for i = 1:N]
     X_eci[1] = SVector{6}(eci0)
@@ -334,93 +297,58 @@ function driver(N,eci0, eoe0, ks0 )
     X_ks[1] = ks0
 
     # one day in fictitious time (this was guess and check)
-    sf = 10*0.0003709551289
-    ds = sf/(N)
+    sf = num_orbits*0.001563905
+    ds = sf/N
 
-    @inbounds for i = 1:(N-1)
-        X_ks[i+1] = rk4(ks_dynamics,X_ks[i],ds)
-    end
-    tf = X_ks[end][10]
-    # @show tf
-    tf += tf/N
-    dt = tf/N
     @inbounds for i = 1:(N-1)
         X_eci[i+1] = rk4(cartesian_dynamics,X_eci[i],dt)
         X_eoe[i+1] = rk4(eoe_dynamics,X_eoe[i],dt)
+        X_ks[i+1] = rk4(ks_dynamics,X_ks[i],ds)
     end
+
+    ksm = mat_from_vec(X_ks)
+    goal_tf = 36951.67397573928
+
+    @show goal_tf - X_ks[end][10]
+
+    ks_t_vec = vec(ksm[10,:])
 
     X_eoe_eci = [rv_from_eoe(X_eoe[i]) for i = 1:length(X_eoe)]
     X_ks_eci = [rv_from_ks(X_ks[i][1:4],X_ks[i][5:8]) for i = 1:length(X_ks)]
 
-    # eci_m = mat_from_vec(X_eci)
-    # ks_m = mat_from_vec(X_ks_eci)
+    eoe_m = mat_from_vec(X_eoe_eci)
+    eci_m = mat_from_vec(X_eci)
+    ks_m = mat_from_vec(X_ks_eci)
 
-    # true energy
-    # true_ϵ = -8.336482081923751e6
-    true_ϵ = -8.3364820836748555e6
-    # energies
-    ks_ϵ = ϵ(X_ks_eci[end])
-    eci_ϵ = ϵ(X_eci[end])
-    eoe_ϵ = ϵ(X_eoe_eci[end])
+    # SMA from all
+    eoe_a= [sma_from_eci(X_eoe_eci[i]) for i = 1:length(X_eoe_eci)]
+    eci_a = [sma_from_eci(X_eci[i]) for i = 1:length(X_eci)]
+    ks_a = [sma_from_eci(X_ks_eci[i]) for i = 1:length(X_ks_eci)]
 
-    # @show ks_ϵ
-    # @show eci_ϵ
-    # @show eoe_ϵ
-    # error()
-
-    ks_error = -100*abs(ks_ϵ - true_ϵ)/true_ϵ
-    eci_error = -100*abs(eci_ϵ- true_ϵ)/true_ϵ
-    eoe_error = -100*abs(eoe_ϵ- true_ϵ)/true_ϵ
-    # ks_error = abs(ks_ϵ - true_ϵ)
-    # eci_error = abs(eci_ϵ- true_ϵ)
-    # eoe_error = abs(eoe_ϵ- true_ϵ)
-    # @show ks_ϵ
-    # @show eci_ϵ
-    # @show eoe_ϵ
-    #
-    # @show ks_error
-    # @show eci_error
-    # @show eoe_error
-    #
-    #
-    # mat"
-    # figure
-    # hold on
-    # %plot($eci_m(1,:),$eci_m(2,:),'o')
-    # plot($eci_m(1,:),$eci_m(2,:),'o')
-    # plot($ks_m(1,:),$ks_m(2,:))
-    # hold off
-    # "
-    #
-    # @show norm(X_eci[end] - X_ks_eci[end])
-    # @show norm(X_eci[end] - X_eoe_eci[end])
-    #
-    # @show X_eci[end]
-    return SA[ks_error, eci_error, eoe_error]
-end
-
-function grid_search()
-    eci0, eoe0, ks0 = initial_conditions()
-
-    N_vec = 15:1:300
-    errors = [@SVector zeros(3) for i = 1:length(N_vec)]
-
-    @showprogress "simulating" for i = 1:length(N_vec)
-        errors[i] = driver(N_vec[i],eci0, eoe0, ks0 )
-        # errors[i] = driver(10000000,eci0, eoe0, ks0 )
-    end
-
-    errors = mat_from_vec(errors)
+    T_period = 36951.67397573928
+    t_vec /= T_period
+    ks_t_vec /= T_period
+    eps_0 = eci_a[1]
+    pl1 = 1000*100*(1 .- eoe_a /eps_0)
+    pl2 = 1000*100*(1 .- eci_a /eps_0)
+    pl3 = 1000*100*(1 .- ks_a /eps_0)
     mat"
     figure
     hold on
-    plot($errors')
-    set(gca, 'YScale', 'log')
-    set(gca, 'XScale', 'log')
-    ylim([0 10000])
-    xlim([15 54])
-    legend('KS','ECI','EOE')
+    plot($t_vec , $pl1,'linewidth',3)
+    plot($t_vec , $pl2)
+    plot($ks_t_vec, $pl3)
+    legend('EOE','Cartesian','KS')
+    %xlim([0 5])
+    %ylim([-1.5 2.8])
+    %xticks([0 1 2 3 4 5])
+    %xlabel('Number of Orbits')
+    %ylabel('Specific Orbital Energy (kJ/kg)')
+    %set(gca, 'XScale', 'log')
+    addpath('/Users/kevintracy/devel/Low-Thrust-TrajOpt/matlab2tikz/src')
+    matlab2tikz('energy_test3.tikz')
     hold off
     "
 end
-grid_search()
+
+driver()
