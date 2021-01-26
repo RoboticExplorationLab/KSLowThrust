@@ -1,6 +1,0 @@
-[deps]
-Attitude = "8b3d34c0-dc4a-4a06-a8c8-4215f240a648"
-MATLAB = "10e44e05-a98a-55b3-a45b-ba969058deb6"
-OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"
-SatelliteDynamics = "0e7c1a32-1b9f-5532-88a4-e668712d6a4c"
-StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
