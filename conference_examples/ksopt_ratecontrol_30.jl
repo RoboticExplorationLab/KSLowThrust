@@ -2,11 +2,14 @@ using TrajectoryOptimization
 using Altro
 using RobotDynamics
 using Attitude
+using SatelliteDynamics
 using StaticArrays
 using LinearAlgebra
+using MATLAB
 const TO = TrajectoryOptimization
 const RD = RobotDynamics
 
+include(joinpath(dirname(dirname(@__FILE__)),"ks_functions.jl"))
 function L_fx(u)
 
     return @SMatrix [u[1] -u[2] -u[3]  u[4];
@@ -50,28 +53,6 @@ function RobotDynamics.dynamics(model::KSopt, x, u_dot)
                    u_dot[1],u_dot[2],u_dot[3])
 
 end
-# function RobotDynamics.dynamics(model::KSopt, x, u)
-#
-#     # unpack state
-#     p = SVector(x[1],x[2],x[3],x[4])
-#     p_prime = SVector(x[5],x[6],x[7],x[8])
-#     h = x[9]
-#
-#     # scale u
-#     # u /= model.uscale
-#
-#     L = L_fx(p)
-#     P_j2 = SVector(u[1],u[2],u[3],0)/model.uscale
-#     p_dp = -(h/2)*p + ((dot(p,p))/(2*dscale))*L'*P_j2
-#
-#     return SVector(p_prime[1],p_prime[2],p_prime[3],p_prime[4],
-#                    p_dp[1],p_dp[2],p_dp[3],p_dp[4],
-#                    -2*dot(p_prime,L'*P_j2),
-#                    dot(p,p),
-#                    2*p'*p_prime,
-#                    2*(p_prime[1]*p[3] + p[1]*p_prime[3] + p_prime[2]*p[4] + p[2]*p_prime[4]))
-#
-# end
 
 # scaling
 dscale = 1e7 # m
@@ -99,12 +80,6 @@ dt = 3e-2
 tf = dt*(N-1)
 
 # cost function
-# Q = 10000*Diagonal(SVector{n}([zeros(10);1;0]))
-# R = 1*Diagonal(@SVector fill(1.0, m))
-# r_Desired = 42e6/dscale
-# xf = SVector{n}([zeros(10);r_Desired;0])
-# Qf = 10*Q
-# obj = LQRObjective(Q, R, Qf, xf, N)
 scaling_num = 10
 r_Desired = 42e6/dscale#4.2#6.77814
 R_scale = .01
@@ -121,14 +96,11 @@ cons = ConstraintList(n,m,N)
 u_bnd = 10.0
 maxThrust = NormConstraint(n, m, u_bnd, TO.SecondOrderCone(), 12:14)
 TO.add_constraint!(cons, maxThrust, 1:N)
-# add_constraint!(cons, BoundConstraint(n,m, u_min=-1000, u_max=1000), 1:N-1)
 
 xf = randn(n)
 xf[11] = 4.2
 xf = SVector{n}(xf)
 prob = Problem(model, obj,xf, tf, x0=x0, constraints=cons,integration=RD.RK4)
-# prob = Problem(model, obj,xf*1000, tf, x0=x0,integration=RD.RK4)
-# initial_controls!(prob,U_old)
 opts = SolverOptions(verbose=2,
                      show_summary = true,
                      iterations = 20000,
@@ -231,9 +203,7 @@ plot($t_hist,$i_hist)
 hold off
 "
 
-using JLD2
-X = states(solver)
-U = controls(solver)
-@save "rate_control_transfers/30_v3_day_transfer.jld2" X U t_hist
-#
-# U_old = controls(solver)
+# using JLD2
+# X = states(solver)
+# U = controls(solver)
+# @save "rate_control_transfers/30_v3_day_transfer.jld2" X U t_hist

@@ -1,7 +1,7 @@
 
 clear
 
-load('matlab_video_data_100.mat')
+load('matlab_video/matlab_video_data_100.mat')
 
 x_hist_t_correct = output_to_matlab.x_hist_t_correct;
 new_time_vec = output_to_matlab.new_time_vec;
@@ -25,7 +25,7 @@ open(v);
 [x,y,z] = sphere(40);
 
 
-% views stuff 
+% views stuff
 v1 = [-180 30 ];
 v2 = [-90 0 ];
 v3 = [0 90];
@@ -42,19 +42,19 @@ for i = 1:10:length(x_hist_t_correct)
     cla
     figure(f1)
     cla
-%     if i ==1 
+%     if i ==1
 %         b = axes;
 %         b.Color = [.8 .8 .8];
 %         cla
 %     end
     grid on
     title(['$\Delta$ T = ',num2str(floor(new_time_vec(i))),' Days'],'Interpreter','latex','FontSize',18)
-    hold on 
+    hold on
     cla
     set(gcf,'color','w');
 %     b = axes;b.Color = 'k';
     hold on
-    
+
     plot3(x_hist_t_correct(1,1:i),x_hist_t_correct(2,1:i),x_hist_t_correct(3,1:i))
 %     surf(6378*x,6378*y,6378*z,'FaceColor','blue','EdgeColor', 'black')
     imgRGB = imread('earth.jpg');
@@ -80,11 +80,9 @@ for i = 1:10:length(x_hist_t_correct)
      frame= getframe(gcf);
      writeVideo(v,frame)
 %      cla(b)
- 
-    
-    
+
+
+
 end
 
 close(v);
-
-
