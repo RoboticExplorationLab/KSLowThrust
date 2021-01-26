@@ -3,17 +3,12 @@ using Altro
 using RobotDynamics
 using StaticArrays
 using LinearAlgebra
+using SatelliteDynamics
+using MATLAB
 const TO = TrajectoryOptimization
 const RD = RobotDynamics
 
-function L_fx(u)
-
-    return @SMatrix [u[1] -u[2] -u[3]  u[4];
-                     u[2]  u[1] -u[4] -u[3];
-                     u[3]  u[4]  u[1]  u[2];
-                     u[4] -u[3]  u[2] -u[1]]
-
-end
+include(joinpath(dirname(dirname(@__FILE__)),"ks_functions.jl"))
 
 struct KSopt <: TO.AbstractModel
     μ::Float64

@@ -10,14 +10,6 @@ const TO = TrajectoryOptimization
 const RD = RobotDynamics
 
 include(joinpath(dirname(dirname(@__FILE__)),"ks_functions.jl"))
-function L_fx(u)
-
-    return @SMatrix [u[1] -u[2] -u[3]  u[4];
-                     u[2]  u[1] -u[4] -u[3];
-                     u[3]  u[4]  u[1]  u[2];
-                     u[4] -u[3]  u[2] -u[1]]
-
-end
 
 struct KSopt <: TO.AbstractModel
     μ::Float64
