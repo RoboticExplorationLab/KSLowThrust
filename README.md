@@ -11,3 +11,5 @@ The three main examples from the paper can be run in the following locations:
 - `conference_examples/30_day_transfer`
 - `conference_examples/60_day_transfer`
 - `conference_examples/100_day_transfer`
+
+All problems were formulated and solved using [`TrajectoryOptimization.jl`](https://github.com/RoboticExplorationLab/TrajectoryOptimization.jl) and [`Altro.jl`](https://github.com/RoboticExplorationLab/Altro.jl)
