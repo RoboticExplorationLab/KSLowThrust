@@ -5,7 +5,7 @@ Kustaanheimo-Stiefel Transformation"](http://roboticexplorationlab.org/papers/ks
 Flight Mechanics Meeting in Charlotte, North Carolina.
 
 ### Examples From Paper
-The three main examples from the paper are low-thrust GTO to GEO transfers of varying transfer time. These examples are in the following locations:
+The three main examples from the paper are low-thrust GTO to GEO transfers of varying maximum thrust. These examples are in the following locations:
 
 - `conference_examples/30_day_transfer`
 - `conference_examples/60_day_transfer`
